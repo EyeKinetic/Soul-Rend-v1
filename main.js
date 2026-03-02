@@ -2,48 +2,48 @@ import './style.css';
 
 // --- Global Data Store (Persistent DB) ---
 // We will store posts in localStorage so they persist across reloads.
-const STORAGE_KEY = 'soulrend_posts';
+const STORAGE_KEY = 'bleach_posts_v1';
 
 // Default mock data to populate if localStorage is empty
 const defaultPosts = [
     {
         id: 1,
-        title: "Welcome to the New Hub",
+        title: "Captain-Commander's Address",
         category: "news",
-        content: "We've redesigned our community portal to bring you the latest news, lore, and updates.",
+        content: "All captains are to report to the First Division barracks immediately for an urgent meeting regarding recent Hollow activity in Karakura Town.",
         img: "",
         date: "Nov 14",
-        badge: "ANNOUNCEMENT",
+        badge: "GOTEI 13 ANNOUNCEMENT",
         badgeClass: "news"
     },
     {
         id: 2,
-        title: "The Fall of Vanguard",
+        title: "Hueco Mundo Expedition",
         category: "events",
-        content: "Join forces with other souls to defeat the corrupted Vanguard boss. Double XP and exclusive loot drops all weekend!",
-        img: "https://images.unsplash.com/photo-1616422285623-1492baab1f45?auto=format&fit=crop&q=80&w=1000",
-        date: "Ends in 2d 14h",
-        badge: "LIVE EVENT",
+        content: "A special task force is being assembled to investigate Las Noches. High spiritual pressure combatants required.",
+        img: "https://images.unsplash.com/photo-1542451313056-b7c8e626645f?auto=format&fit=crop&q=80&w=1000",
+        date: "Deploying in 2d 14h",
+        badge: "URGENT MISSION",
         badgeClass: "event"
     },
     {
         id: 3,
-        title: "Combat Balance & Fixes v0.9.4",
+        title: "Senkaimon Synchronization Update",
         category: "patch-notes",
-        content: "Fixed collision issues in the Ashen Wastes. \n Buffed dagger stagger damage.",
+        content: "Fixed spiritual particle lag when opening gates to the World of the Living. \n Increased Hell Butterfly tracking accuracy.",
         img: "",
         date: "Today",
-        badge: "PATCH NOTES",
+        badge: "KIDO CORPS UPDATE",
         badgeClass: "dev"
     },
     {
         id: 4,
-        title: "The Artifacts of the Ancients",
+        title: "Origins of the Hogyoku",
         category: "wiki",
-        content: "Archivist's Journal: We've uncovered ruins beneath the surface that predate the cataclysm.",
+        content: "Classified report by Kisuke Urahara: A substance capable of dissolving the boundaries between Soul Reaper and Hollow.",
         img: "",
-        date: "The First Age",
-        badge: "LORE RECORD",
+        date: "Classified",
+        badge: "DATACUBE RECORD",
         badgeClass: "lore"
     }
 ];
@@ -123,6 +123,26 @@ function switchView(targetId) {
     renderFeeds();
 }
 
+// Add simple Wiki Filter logic
+window.filterWiki = function (query) {
+    const wikiContainer = document.getElementById('wiki-feed-container');
+    if (!wikiContainer) return;
+
+    const posts = wikiContainer.querySelectorAll('.news-item');
+    posts.forEach(post => {
+        if (query === 'All') {
+            post.style.display = 'flex';
+        } else {
+            const text = post.innerText.toLowerCase();
+            if (text.includes(query.toLowerCase())) {
+                post.style.display = 'flex';
+            } else {
+                post.style.display = 'none';
+            }
+        }
+    });
+}
+
 navLinks.forEach(link => {
     link.addEventListener('click', () => switchView(link.getAttribute('data-target')));
 });
@@ -138,7 +158,7 @@ function createPostHtml(post) {
     // Special style for events to mimic the large card look
     if (post.category === 'events' && post.img) {
         return `
-      <div id="post-${post.id}" class="featured-card card event-card post-item" style="background: linear-gradient(rgba(21, 25, 35, 0.9), rgba(21, 25, 35, 0.9)), url('${post.img}') center/cover; padding: 32px">
+      <div id="post-${post.id}" class="featured-card card event-card post-item" style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${post.img}') center/cover; padding: 32px">
         <button class="delete-btn" onclick="deletePost(${post.id})">Delete Post</button>
         <div class="card-content">
           <span class="badge ${post.badgeClass}">${post.badge}</span>
@@ -268,9 +288,22 @@ if (logoutBtn) {
 const publishBtn = document.getElementById('publish-btn');
 const inputTitle = document.getElementById('cms-title');
 const inputCategory = document.getElementById('cms-category');
+const inputTime = document.getElementById('cms-time');
+const inputTimeGroup = document.getElementById('cms-time-group');
 const inputImg = document.getElementById('cms-img');
 const inputBody = document.getElementById('cms-body');
 const toastNode = document.getElementById('toast');
+
+// Toggle time input based on category
+if (inputCategory) {
+    inputCategory.addEventListener('change', (e) => {
+        if (e.target.value === 'events') {
+            inputTimeGroup.style.display = 'block';
+        } else {
+            inputTimeGroup.style.display = 'none';
+        }
+    });
+}
 
 if (publishBtn) {
     publishBtn.addEventListener('click', () => {
@@ -287,8 +320,14 @@ if (publishBtn) {
         // Determine badge text based on category
         let badgeTxt = "UPDATE";
         let badgeCls = "dev";
+        let finalDate = "Just Now";
+
         if (category === "news") { badgeTxt = "NEWS"; badgeCls = "news"; }
-        if (category === "events") { badgeTxt = "EVENT"; badgeCls = "event"; }
+        if (category === "events") {
+            badgeTxt = "EVENT";
+            badgeCls = "event";
+            finalDate = inputTime.value.trim() || "Ongoing";
+        }
         if (category === "patch-notes") { badgeTxt = "PATCH NOTE"; badgeCls = "dev"; }
         if (category === "wiki") { badgeTxt = "LORE"; badgeCls = "lore"; }
 
@@ -299,7 +338,7 @@ if (publishBtn) {
             category: category,
             content: body,
             img: img,
-            date: "Just Now",
+            date: finalDate,
             badge: badgeTxt,
             badgeClass: badgeCls
         };
@@ -313,6 +352,7 @@ if (publishBtn) {
         inputTitle.value = '';
         inputBody.value = '';
         inputImg.value = '';
+        if (inputTime) inputTime.value = '';
 
         // Show Toast
         toastNode.classList.add('show');

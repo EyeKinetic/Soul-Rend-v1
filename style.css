@@ -1,11 +1,11 @@
 :root {
-  --primary-dark: #0A0E1A;
-  --primary-accent: #00D4FF;
-  --secondary-accent: #7B61FF;
-  --surface-dark: #151923;
-  --surface-light: #1E2330;
-  --text-primary: #FFFFFF;
-  --text-secondary: #94A3B8;
+  --primary-dark: #080808;
+  --primary-accent: #E50914;
+  --secondary-accent: #00D4FF;
+  --surface-dark: #121212;
+  --surface-light: #1A1A1A;
+  --text-primary: #F0F0F0;
+  --text-secondary: #A0A0A0;
   --success: #10B981;
   --warning: #F59E0B;
 }
@@ -33,7 +33,7 @@ body {
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  background: radial-gradient(circle at center, #151923 0%, #0A0E1A 100%);
+  background: radial-gradient(circle at center, #1E0505 0%, #080808 100%);
 }
 
 h1,
@@ -42,9 +42,10 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.05em;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .mono {
@@ -72,23 +73,23 @@ h6 {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border: 1px solid rgba(229, 9, 20, 0.15);
+  border-radius: 4px;
 }
 
 /* Cards */
 .card {
   background: var(--surface-dark);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border: 1px solid rgba(229, 9, 20, 0.15);
+  border-radius: 4px;
   padding: 24px;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.5);
 }
 
 /* Buttons */
@@ -100,11 +101,11 @@ button {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+  background: linear-gradient(135deg, #8B0000, var(--primary-accent));
   color: white;
   padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
+  border-radius: 4px;
+  border: 1px solid var(--primary-accent);
 }
 
 .btn-primary:hover {
@@ -434,9 +435,9 @@ select.input-dark {
 
 /* Event Card (Large) */
 .event-card {
-  background: linear-gradient(rgba(21, 25, 35, 0.9), rgba(21, 25, 35, 0.9)), url('https://images.unsplash.com/photo-1616422285623-1492baab1f45?auto=format&fit=crop&q=80&w=1000') center/cover;
-  border-color: var(--secondary-accent);
-  box-shadow: 0 0 30px rgba(123, 97, 255, 0.15);
+  background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('https://images.unsplash.com/photo-1616422285623-1492baab1f45?auto=format&fit=crop&q=80&w=1000') center/cover;
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 30px rgba(229, 9, 20, 0.15);
 }
 
 .event-meta {
@@ -488,13 +489,13 @@ select.input-dark {
 }
 
 .badge.dev {
-  background: rgba(0, 212, 255, 0.1);
+  background: rgba(229, 9, 20, 0.1);
   color: var(--primary-accent);
   border: 1px solid var(--primary-accent);
 }
 
 .badge.lore {
-  background: rgba(123, 97, 255, 0.1);
+  background: rgba(0, 212, 255, 0.1);
   color: var(--secondary-accent);
   border: 1px solid var(--secondary-accent);
 }
