@@ -230,7 +230,7 @@ const passwordInput = document.getElementById('dev-password');
 const authError = document.getElementById('auth-error');
 const logoutBtn = document.getElementById('logout-dev-btn');
 
-const DEV_PASSWORD = "admin";
+const DEV_PASSWORD = "k9!vP2#mR7$L";
 
 if (openDevAuthBtn) {
     openDevAuthBtn.addEventListener('click', () => {
