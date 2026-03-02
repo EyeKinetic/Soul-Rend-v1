@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soulrend Community Hub</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <!-- Background Particles -->
+  <div id="particles-bg"></div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar glass-panel">
+    <div class="nav-left">
+      <div class="logo">
+        <span class="logo-text">SOULREND</span>
+        <div class="logo-glow"></div>
+      </div>
+    </div>
+    <div class="nav-center">
+      <button class="nav-link active" data-target="view-news">News</button>
+      <button class="nav-link" data-target="view-events">Events</button>
+      <button class="nav-link" data-target="view-patch-notes">Patch Notes</button>
+      <button class="nav-link" data-target="view-wiki">Wiki</button>
+    </div>
+    <div class="nav-right" style="display: flex; gap: 16px; align-items: center;">
+      <!-- Universal Social Links in Header so they are always accessible -->
+      <div class="social-links-header">
+        <a href="https://discord.com" target="_blank" class="social-icon header-icon mono">D</a>
+        <a href="https://youtube.com" target="_blank" class="social-icon header-icon mono">Y</a>
+        <a href="https://twitter.com" target="_blank" class="social-icon header-icon mono">X</a>
+      </div>
+      <button class="btn-secondary" id="open-dev-auth" style="padding: 8px 16px; font-size: 14px;">Developer
+        Access</button>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main id="app-container">
+
+    <!-- === NEWS FEED === -->
+    <section id="view-news" class="view-section active">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="news-feed-container">
+          <div class="section-header">
+            <h2>Community News</h2>
+          </div>
+          <!-- Dynamic News Posts Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === EVENTS === -->
+    <section id="view-events" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="events-feed-container">
+          <div class="section-header">
+            <h2>Active & Upcoming Events</h2>
+          </div>
+          <!-- Dynamic Event Posts Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === PATCH NOTES === -->
+    <section id="view-patch-notes" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="patch-notes-feed-container">
+          <div class="section-header">
+            <h2>Game Updates & Patch Notes</h2>
+          </div>
+          <!-- Dynamic Patch Notes Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === WIKI === -->
+    <section id="view-wiki" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr 3fr;">
+        <aside class="wiki-sidebar glass-panel" style="padding: 24px;">
+          <h4 style="margin-bottom: 20px; color: var(--secondary-accent);">Lore Categories</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; color: var(--text-secondary);">
+            <li style="cursor: pointer; color: white;">The First Age</li>
+            <li style="cursor: pointer;">Factions</li>
+            <li style="cursor: pointer;">Locations</li>
+            <li style="cursor: pointer;">Bestiary</li>
+          </ul>
+        </aside>
+
+        <div class="main-feed" id="wiki-feed-container">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Lore Archives</h2>
+            <input type="text" class="input-dark" style="max-width: 300px;" placeholder="Search wiki...">
+          </div>
+          <!-- Dynamic Lore Records Go Here -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- === SECURE DEV PORTAL (CMS) === -->
+    <!-- Hidden by default via CSS until authenticated -->
+    <section id="view-dev-portal" class="view-section" style="display: none;">
+      <div class="portal-layout">
+        <aside class="admin-sidebar glass-panel">
+          <div class="sidebar-header">CMS TOOLS</div>
+          <ul class="sidebar-menu">
+            <li class="active">Post Update</li>
+            <!-- Other tool buttons are mock placeholders -->
+            <button class="btn-secondary" id="logout-dev-btn" style="margin-top: 40px; width: 100%;">Log Out
+              Admin</button>
+          </ul>
+        </aside>
+
+        <div class="portal-content">
+          <header class="content-header">
+            <h2>Developer CMS</h2>
+            <div class="header-actions">
+              <button class="btn-primary pulse" id="publish-btn">Publish to Live Network</button>
+            </div>
+          </header>
+
+          <div class="editor-area">
+            <div class="form-group">
+              <label>Post Title</label>
+              <input type="text" id="cms-title" class="input-dark" placeholder="Enter title here...">
+            </div>
+            <div style="display: flex; gap: 16px;">
+              <div class="form-group" style="flex: 1;">
+                <label>Target Page</label>
+                <select id="cms-category" class="input-dark">
+                  <option value="news">News</option>
+                  <option value="patch-notes">Patch Notes</option>
+                  <option value="events">Events</option>
+                  <option value="wiki">Wiki / Lore</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 2;">
+                <label>Featured Image URL (Optional)</label>
+                <input type="text" id="cms-img" class="input-dark" placeholder="https://example.com/image.jpg">
+              </div>
+            </div>
+
+            <div class="rich-text-editor glass-panel">
+              <div class="editor-toolbar">
+                <!-- Toolbar is functional via JS adding markdown formatting -->
+                <span class="toolbar-btn" data-tag="**">B</span>
+                <span class="toolbar-btn" data-tag="*">I</span>
+                <span class="toolbar-btn" data-tag="[Link](url)">Link</span>
+              </div>
+              <!-- ID added for JS targeting -->
+              <textarea id="cms-body" class="editor-body input-dark"
+                placeholder="Write plain text or markdown content here..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Dev Auth Modal -->
+  <div id="auth-modal" class="modal-overlay">
+    <div class="modal-content glass-panel">
+      <h3 style="margin-bottom: 8px;">Developer Access</h3>
+      <p class="text-secondary" style="margin-bottom: 24px; font-size: 14px;">Please enter the master admin passphrase.
+        (Hint: 'admin')</p>
+
+      <input type="password" id="dev-password" class="input-dark" placeholder="Enter password..."
+        style="margin-bottom: 16px;">
+      <p id="auth-error" class="text-secondary"
+        style="color: var(--warning); display: none; margin-bottom: 16px; font-size: 14px;">Incorrect passphrase.</p>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn-secondary" id="auth-cancel">Cancel</button>
+        <button class="btn-primary" id="auth-submit">Authenticate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification for Publishing -->
+  <div id="toast" class="toast-notification">Post Published!</div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
