@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seireitei Command Hub - Bleach</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-Oi6VqbGi.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CdBtphmg.css">
+</head>
+
+<body>
+  <!-- Background Particles -->
+  <div id="particles-bg"></div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar glass-panel">
+    <div class="nav-left">
+      <div class="logo">
+        <span class="logo-text"
+          style="font-family: 'Oswald', sans-serif; letter-spacing: 4px; font-size: 24px;">BLEACH</span>
+        <div class="logo-glow"></div>
+      </div>
+    </div>
+    <div class="nav-center">
+      <button class="nav-link active" data-target="view-news">News</button>
+      <button class="nav-link" data-target="view-events">Events</button>
+      <button class="nav-link" data-target="view-patch-notes">Patch Notes</button>
+      <button class="nav-link" data-target="view-wiki">Wiki</button>
+    </div>
+    <div class="nav-right" style="display: flex; gap: 16px; align-items: center;">
+      <!-- Universal Social Links in Header so they are always accessible -->
+      <div class="social-links-header">
+        <a href="https://discord.gg/EwgsJSPAyy" target="_blank" class="social-icon header-icon" aria-label="Discord">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@kar89gamernice47" target="_blank" class="social-icon header-icon"
+          aria-label="YouTube">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+          </svg>
+        </a>
+        <a href="https://twitter.com" target="_blank" class="social-icon header-icon" aria-label="X (Twitter)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+        </a>
+      </div>
+      <button class="btn-secondary" id="open-dev-auth" style="padding: 8px 16px; font-size: 14px;">Developer
+        Access</button>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main id="app-container">
+
+    <!-- === NEWS FEED === -->
+    <section id="view-news" class="view-section active">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="news-feed-container">
+          <div class="section-header">
+            <h2>Seireitei News</h2>
+          </div>
+          <!-- Dynamic News Posts Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === EVENTS === -->
+    <section id="view-events" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="events-feed-container">
+          <div class="section-header">
+            <h2>Active Missions & Invasions</h2>
+          </div>
+          <!-- Dynamic Event Posts Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === PATCH NOTES === -->
+    <section id="view-patch-notes" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
+        <div class="main-feed" id="patch-notes-feed-container">
+          <div class="section-header">
+            <h2>Game Updates & Patch Notes</h2>
+          </div>
+          <!-- Dynamic Patch Notes Go Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === WIKI === -->
+    <section id="view-wiki" class="view-section">
+      <div class="dashboard-grid" style="grid-template-columns: 1fr 3fr;">
+        <aside class="wiki-sidebar glass-panel" style="padding: 24px;">
+          <h4 style="margin-bottom: 20px; color: var(--primary-accent);">Datacube Archives</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; color: var(--text-secondary);">
+            <li style="cursor: pointer; color: white;" onclick="filterWiki('Soul Reapers')">Soul Reapers (Shinigami)
+            </li>
+            <li style="cursor: pointer;" onclick="filterWiki('Hollows')">Hollows & Arrancar</li>
+            <li style="cursor: pointer;" onclick="filterWiki('Quincies')">Quincies</li>
+            <li style="cursor: pointer;" onclick="filterWiki('Zanpakuto')">Zanpakutō Database</li>
+            <li style="cursor: pointer;" onclick="filterWiki('All')">View All</li>
+          </ul>
+        </aside>
+
+        <div class="main-feed" id="wiki-feed-container">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Lore Archives</h2>
+            <input type="text" class="input-dark" style="max-width: 300px;" placeholder="Search wiki...">
+          </div>
+          <!-- Dynamic Lore Records Go Here -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- === SECURE DEV PORTAL (CMS) === -->
+    <!-- Hidden by default via CSS until authenticated -->
+    <section id="view-dev-portal" class="view-section" style="display: none;">
+      <div class="portal-layout">
+        <aside class="admin-sidebar glass-panel">
+          <div class="sidebar-header">CMS TOOLS</div>
+          <ul class="sidebar-menu">
+            <li class="active">Post Update</li>
+            <!-- Other tool buttons are mock placeholders -->
+            <button class="btn-secondary" id="logout-dev-btn" style="margin-top: 40px; width: 100%;">Log Out
+              Admin</button>
+          </ul>
+        </aside>
+
+        <div class="portal-content">
+          <header class="content-header">
+            <h2>Developer CMS</h2>
+            <div class="header-actions">
+              <button class="btn-primary pulse" id="publish-btn">Publish to Live Network</button>
+            </div>
+          </header>
+
+          <div class="editor-area">
+            <div class="form-group">
+              <label>Post Title</label>
+              <input type="text" id="cms-title" class="input-dark" placeholder="Enter title here...">
+            </div>
+            <div style="display: flex; gap: 16px;">
+              <div class="form-group" style="flex: 1;">
+                <label>Target Page</label>
+                <select id="cms-category" class="input-dark">
+                  <option value="news">News</option>
+                  <option value="patch-notes">Patch Notes</option>
+                  <option value="events">Events</option>
+                  <option value="wiki">Wiki / Lore</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1; display: none;" id="cms-time-group">
+                <label>Event Duration / Time</label>
+                <input type="text" id="cms-time" class="input-dark" placeholder="e.g. Ends in 2 Days">
+              </div>
+              <div class="form-group" style="flex: 2;">
+                <label>Featured Image URL (Optional)</label>
+                <input type="text" id="cms-img" class="input-dark" placeholder="https://example.com/image.jpg">
+              </div>
+            </div>
+
+            <div class="rich-text-editor glass-panel">
+              <div class="editor-toolbar">
+                <!-- Toolbar is functional via JS adding markdown formatting -->
+                <span class="toolbar-btn" data-tag="**">B</span>
+                <span class="toolbar-btn" data-tag="*">I</span>
+                <span class="toolbar-btn" data-tag="[Link](url)">Link</span>
+              </div>
+              <!-- ID added for JS targeting -->
+              <textarea id="cms-body" class="editor-body input-dark"
+                placeholder="Write plain text or markdown content here..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Dev Auth Modal -->
+  <div id="auth-modal" class="modal-overlay">
+    <div class="modal-content glass-panel">
+      <h3 style="margin-bottom: 8px;">Developer Access</h3>
+      <input type="password" id="dev-password" class="input-dark" placeholder="Enter password..."
+        style="margin-bottom: 16px; margin-top: 24px;">
+      <p id="auth-error" class="text-secondary"
+        style="color: var(--warning); display: none; margin-bottom: 16px; font-size: 14px;">Incorrect passphrase.</p>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn-secondary" id="auth-cancel">Cancel</button>
+        <button class="btn-primary" id="auth-submit">Authenticate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification for Publishing -->
+  <div id="toast" class="toast-notification">Post Published!</div>
+
+</body>
+
+</html>
