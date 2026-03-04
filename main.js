@@ -779,7 +779,7 @@ if (publishBtn) {
                     );
 
                     // Get viewable URL
-                    finalImageUrl = storage.getFileView(APPWRITE_CONFIG.bucketId, uploadedFile.$id).href;
+                    finalImageUrl = storage.getFileView(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
                     payload.image = finalImageUrl; // Update the Appwrite schema payload
                 } else if (img && img.startsWith('Selected: ')) {
                     // Failsafe in case a "Selected" string got caught without a file mapping
