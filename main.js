@@ -1,5 +1,9 @@
+import { inject } from '@vercel/analytics';
 import './style.css';
 import { databases, account, storage, APPWRITE_CONFIG, ID } from './src/appwrite.js';
+
+// Initialize Vercel Analytics tracking
+inject();
 
 let postsDB = [];
 let editingPostId = null;
