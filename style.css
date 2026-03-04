@@ -1,13 +1,15 @@
 :root {
-  --primary-dark: #080808;
+  --primary-dark: #0A0B10;
   --primary-accent: #E50914;
-  --secondary-accent: #00D4FF;
-  --surface-dark: #121212;
-  --surface-light: #1A1A1A;
-  --text-primary: #F0F0F0;
-  --text-secondary: #A0A0A0;
+  --secondary-accent: #0dd7f2;
+  --surface-dark: rgba(10, 11, 16, 0.6);
+  --surface-light: rgba(224, 230, 235, 0.1);
+  --text-primary: #FFFFFF;
+  --text-secondary: #E0E6EB;
   --success: #10B981;
   --warning: #F59E0B;
+  --glass-bg: rgba(224, 230, 235, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
 }
 
 * {
@@ -33,7 +35,19 @@ body {
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  background: radial-gradient(circle at center, #1E0505 0%, #080808 100%);
+  background: url('https://images.unsplash.com/photo-1542451313056-b7c8e626645f?auto=format&fit=crop&q=80&w=2000') center/cover;
+  opacity: 0.2;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0.4) 0%, rgba(10, 11, 16, 0.9) 100%);
+  z-index: -1;
 }
 
 h1,
@@ -70,26 +84,33 @@ h6 {
 
 /* Glassmorphism */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 9, 20, 0.15);
-  border-radius: 4px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* Cards */
 .card {
-  background: var(--surface-dark);
-  border: 1px solid rgba(229, 9, 20, 0.15);
-  border-radius: 4px;
+  position: relative;
+  /* ensure absolute action buttons anchor to card */
+  background: #EBECF0;
+  color: #0A0B10;
+  border: none;
+  border-radius: 8px;
   padding: 24px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card .text-secondary {
+  color: #4a4d55;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(229, 9, 20, 0.15);
-  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 10px 40px rgba(13, 215, 242, 0.2);
 }
 
 /* Buttons */
@@ -110,7 +131,7 @@ button {
 
 .btn-primary:hover {
   filter: brightness(1.2);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 15px rgba(13, 215, 242, 0.4);
 }
 
 .btn-primary.pulse {
@@ -119,15 +140,15 @@ button {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 0 0 rgba(13, 215, 242, 0.4);
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);
+    box-shadow: 0 0 0 10px rgba(13, 215, 242, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+    box-shadow: 0 0 0 0 rgba(13, 215, 242, 0);
   }
 }
 
@@ -155,7 +176,6 @@ button {
   text-underline-offset: 4px;
 }
 
-/* Navbar */
 .navbar {
   position: fixed;
   top: 0;
@@ -171,7 +191,7 @@ button {
   border-top: none;
   border-left: none;
   border-right: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .logo {
@@ -218,8 +238,8 @@ button {
   left: 0;
   width: 100%;
   height: 3px;
-  background: var(--primary-accent);
-  box-shadow: 0 0 8px var(--primary-accent);
+  background: var(--secondary-accent);
+  box-shadow: 0 0 8px var(--secondary-accent);
 }
 
 /* Layout */
@@ -266,6 +286,19 @@ button {
 
 .post-item {
   animation: fadeIn 0.4s ease forwards;
+}
+
+/* Hide Admin Actions by Default */
+.delete-btn,
+.edit-btn {
+  display: none !important;
+}
+
+/* Show Admin Actions Only When Logged In */
+body.dev-mode .delete-btn,
+body.dev-mode .edit-btn {
+  display: inline-block !important;
+  /* or whatever their original display is */
 }
 
 /* --- DEV AREA (CMS) --- */
@@ -436,8 +469,9 @@ select.input-dark {
 /* Event Card (Large) */
 .event-card {
   background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('https://images.unsplash.com/photo-1616422285623-1492baab1f45?auto=format&fit=crop&q=80&w=1000') center/cover;
-  border-color: var(--primary-accent);
-  box-shadow: 0 0 30px rgba(229, 9, 20, 0.15);
+  border-color: var(--secondary-accent);
+  box-shadow: 0 0 30px rgba(13, 215, 242, 0.15);
+  color: white;
 }
 
 .event-meta {
@@ -601,18 +635,281 @@ select.input-dark {
   }
 }
 
-/* Wiki specific */
-.wiki-sidebar li {
-  padding: 8px 12px;
+/* --- INFORMATION BOARD (TRELLO STYLE) --- */
+.board-layout {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 24px;
+  min-height: calc(100vh - 250px);
+  align-items: flex-start;
+}
+
+.board-layout::-webkit-scrollbar {
+  height: 8px;
+}
+
+.board-layout::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.board-layout::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.board-column {
+  background: rgba(224, 230, 235, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  min-width: 320px;
+  max-width: 320px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.board-column-header {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding: 8px;
   border-radius: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.2);
+  /* Top accent border that will get injected dynamically in JS */
+}
+
+.trello-card {
+  background: #EBECF0;
+  border-radius: 8px;
+  color: #111;
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.trello-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.trello-card-cover {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px 6px 0 0;
+  margin: -12px -12px 12px -12px;
+  /* Pull to edges */
+  width: calc(100% + 24px);
+}
+
+/* --- FOOTER & DROPDOWN --- */
+.app-footer {
+  margin-top: 60px;
+  padding: 24px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(10, 15, 20, 0.6);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-link-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer-link-btn:hover {
+  color: #0dd7f2;
+}
+
+.contact-dropdown {
+  position: absolute;
+  bottom: 30px;
+  right: 0;
+  background: rgba(20, 25, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: none;
+  flex-direction: column;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.contact-dropdown.active {
+  display: flex;
+}
+
+.dropdown-item {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
   transition: background 0.2s;
 }
 
-.wiki-sidebar li:hover {
-  background: rgba(255, 255, 255, 0.05);
+.dropdown-item:hover {
+  background: rgba(13, 215, 242, 0.1);
+  color: #0dd7f2;
 }
 
-/* Header Socials */
+/* --- RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 768px) {
+
+  /* Navigation */
+  .navbar {
+    flex-direction: column;
+    padding: 16px;
+    align-items: flex-start;
+    height: auto;
+  }
+
+  .nav-center {
+    margin-top: 16px;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    flex-wrap: nowrap;
+    padding-bottom: 8px;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-center::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-center .nav-link {
+    flex-shrink: 0;
+    margin: 0 12px 0 0;
+  }
+
+  .nav-right {
+    margin-top: 12px;
+  }
+
+  .social-links {
+    display: none;
+    /* Hide header socials on mobile to save space */
+  }
+
+  #open-dev-auth {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+
+  /* Structural Content */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  main {
+    padding-top: 120px;
+    /* Account for taller nav */
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Information Board */
+  .board-layout {
+    gap: 16px;
+  }
+
+  .board-column {
+    min-width: 280px;
+    max-width: 280px;
+  }
+
+  /* CMS Portal */
+  .portal-layout {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  /* Modals */
+  .modal-content {
+    margin: 16px;
+    padding: 24px !important;
+    max-height: 85vh;
+  }
+
+  #viewer-title {
+    font-size: 20px !important;
+  }
+}
+
+.trello-card {
+  position: relative;
+  /* ensure absolute action buttons anchor to card */
+  background: var(--surface-light);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.trello-card-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #172b4d;
+}
+
+.trello-card-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .social-links-header {
   display: flex;
   gap: 12px;
@@ -669,8 +966,9 @@ select.input-dark {
   box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
 }
 
-/* Post Deletion */
-.delete-btn {
+/* Post Deletion and Editing */
+.delete-btn,
+.edit-btn {
   display: none;
   /* hidden by default */
   position: absolute;
@@ -686,12 +984,26 @@ select.input-dark {
   backdrop-filter: blur(4px);
 }
 
+.edit-btn {
+  right: 125px;
+  /* Offset to not overlap delete */
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .delete-btn:hover {
   background: var(--warning);
   color: #111;
 }
 
-/* When the dev is logged in, show the delete buttons */
-body.dev-mode .delete-btn {
+.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* When the dev is logged in, show the delete and edit buttons */
+body.dev-mode .delete-btn,
+body.dev-mode .edit-btn {
   display: block;
 }
