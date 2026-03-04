@@ -1,9 +1,13 @@
 import { inject } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import './style.css';
 import { databases, account, storage, APPWRITE_CONFIG, ID } from './src/appwrite.js';
 
 // Initialize Vercel Analytics tracking
 inject();
+
+// Initialize Vercel Speed Insights tracking
+injectSpeedInsights();
 
 let postsDB = [];
 let editingPostId = null;
