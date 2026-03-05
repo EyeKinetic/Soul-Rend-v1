@@ -484,7 +484,7 @@ function createPostHtml(post) {
         const badgeSty = isExpired ? "background: rgba(255,255,255,0.1); color: #888; border-color: #555;" : "";
         const btnHtml = isExpired
             ? `<button class="btn-secondary" disabled style="padding: 8px 16px; font-size: 14px; opacity: 0.5; pointer-events: auto; cursor: not-allowed;">Event Over</button>`
-            : `<button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto;">Join Now</button>`;
+            : `<a href="https://discord.gg/EwgsJSPAyy" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">Join Now</button></a>`;
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
         return `
