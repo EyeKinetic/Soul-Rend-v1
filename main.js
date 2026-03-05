@@ -782,8 +782,10 @@ if (publishBtn) {
                         selectedImageFile
                     );
 
-                    // Get viewable URL
-                    finalImageUrl = storage.getFileView(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
+                    // Manually construct the raw REST API view URL to bypass strict Appwrite Cookie Checks for Incognito users
+                    const projectId = '69a594120012d4480ace'; // Your Appwrite Project ID
+                    finalImageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${APPWRITE_CONFIG.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}&mode=admin`;
+
                     payload.image = finalImageUrl; // Update the Appwrite schema payload
                 } else if (img && img.startsWith('Selected: ')) {
                     // Failsafe in case a "Selected" string got caught without a file mapping
