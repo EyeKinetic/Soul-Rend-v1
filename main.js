@@ -389,7 +389,19 @@ window.openPostViewer = function (e, postId) {
 
     viewerTitle.textContent = post.title;
     viewerBody.textContent = post.content;
-    viewerDate.textContent = post.date;
+
+    let displayStr = post.date;
+    try {
+        const d = new Date(post.date);
+        if (!isNaN(d.getTime())) displayStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch (e) { }
+    if (post.category === 'events' && post.end_time) {
+        try {
+            const ed = new Date(post.end_time);
+            if (!isNaN(ed.getTime())) displayStr += ` - Ends: ${ed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
+        } catch (e) { }
+    }
+    viewerDate.textContent = displayStr;
     viewerBadge.textContent = post.badge;
     viewerBadge.className = `badge ${post.badgeClass || 'dev'}`;
 
@@ -420,6 +432,19 @@ window.openPostViewer = function (e, postId) {
 
 // --- Feed Rendering Engine ---
 function createPostHtml(post) {
+    function formatDate(dateStr) {
+        if (!dateStr || dateStr === "Ongoing" || dateStr === "Unknown" || dateStr === "Just Now") return dateStr;
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    let displayDate = formatDate(post.date);
+
     const fallbackImg = "https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable";
     let imgHtml = post.img ? `<img src="${post.img}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">` : '';
     let paddingStyle = post.img ? 'padding: 20px;' : '';
@@ -427,14 +452,31 @@ function createPostHtml(post) {
     // Special style for events to mimic the large card look
     if (post.category === 'events' && post.img) {
         let isExpired = false;
-        let timeDisplay = post.date; // fallback
+        let timeDisplay = displayDate; // fallback
 
         if (post.end_time) {
             const endD = new Date(post.end_time);
-            timeDisplay = `Ends: ${endD.toLocaleDateString()} ${endD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            if (!isNaN(endD.getTime())) {
+                const now = new Date();
+                if (now > endD) {
+                    isExpired = true;
+                    timeDisplay = `Ended: ${formatDate(post.end_time)}`;
+                } else {
+                    const diffMs = endD - now;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-            if (new Date() > endD) {
-                isExpired = true;
+                    if (diffDays > 0) {
+                        timeDisplay = `Ends in ${diffDays}d ${diffHours}h`;
+                    } else if (diffHours > 0) {
+                        timeDisplay = `Ends in ${diffHours}h`;
+                    } else {
+                        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        timeDisplay = `Ends in ${diffMins}m`;
+                    }
+                }
+            } else {
+                timeDisplay = `Ends: ${post.end_time}`;
             }
         }
 
@@ -470,7 +512,7 @@ function createPostHtml(post) {
       <div style="padding: 20px; pointer-events: none;">
         <div class="news-header">
           <span class="badge ${post.badgeClass}">${post.badge}</span>
-          <span class="news-meta mono">${post.date}</span>
+          <span class="news-meta mono">${displayDate}</span>
         </div>
         <h4 class="news-title">${post.title}</h4>
         <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${post.content}</p>
