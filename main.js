@@ -488,7 +488,7 @@ function createPostHtml(post) {
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
         return `
-      <div id="post-${post.id}" class="featured-card card event-card post-item" style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${post.img}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
+      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${post.img}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
         <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
         <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
         <div class="card-content" style="pointer-events: none;">
@@ -948,3 +948,67 @@ document.querySelectorAll('.toolbar-btn').forEach(btn => {
         }
     });
 });
+
+// --- Live Ticking Countdowns ---
+setInterval(() => {
+    document.querySelectorAll('.event-card[data-endtime]').forEach(card => {
+        const endTimeStr = card.getAttribute('data-endtime');
+        if (!endTimeStr) return;
+
+        const endD = new Date(endTimeStr);
+        if (isNaN(endD.getTime())) return;
+
+        const now = new Date();
+        const timeSpan = card.querySelector('.event-meta .mono');
+
+        if (now > endD) {
+            // It just expired live! Let's update the card to look ended
+            card.removeAttribute('data-endtime'); // Stop ticking
+
+            const badgeSpan = card.querySelector('.card-content .badge');
+            if (badgeSpan) {
+                badgeSpan.textContent = "ENDED";
+                badgeSpan.style.background = "rgba(255,255,255,0.1)";
+                badgeSpan.style.color = "#888";
+                badgeSpan.style.borderColor = "#555";
+            }
+
+            const btn = card.querySelector('.event-meta button:not(.btn-secondary:not([disabled]))');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = "Event Over";
+                btn.className = "btn-secondary";
+                btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
+            }
+
+            if (timeSpan) {
+                timeSpan.textContent = `Ended: ${endD.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
+                timeSpan.style.color = "#ff4a4a";
+                timeSpan.style.fontWeight = "bold";
+            }
+        } else {
+            // Update ticking countdown
+            const diffMs = endD - now;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+            let timeDisplay = "";
+            if (diffDays > 0) {
+                timeDisplay = `Ends in ${diffDays}d ${diffHours}h`;
+            } else if (diffHours > 0) {
+                timeDisplay = `Ends in ${diffHours}h ${diffMins}m`;
+            } else if (diffMins > 0) {
+                timeDisplay = `Ends in ${diffMins}m ${diffSecs}s`;
+            } else {
+                timeDisplay = `Ends in ${diffSecs}s`;
+            }
+
+            if (timeSpan) {
+                timeSpan.textContent = timeDisplay;
+            }
+        }
+    });
+}, 1000);
