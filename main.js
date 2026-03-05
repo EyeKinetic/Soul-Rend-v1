@@ -39,6 +39,7 @@ async function loadFromAppwrite() {
                     mappedDoc.title = doc.event_name || "Untitled";
                     mappedDoc.content = doc.description || "";
                     mappedDoc.date = doc.start_time || "Unknown";
+                    mappedDoc.end_time = doc.end_time || null; // Captured from DB for expiration logic
                     mappedDoc.badge = "EVENT";
                     mappedDoc.badgeClass = "event";
                 } else if (category === 'patch-notes') {
@@ -142,7 +143,14 @@ window.editPost = function (id) {
     if (colorSelect && post.badgeClass) colorSelect.value = post.badgeClass;
 
     if (post.category === 'events') {
-        document.getElementById('cms-time').value = post.date;
+        if (post.end_time) {
+            const d = new Date(post.end_time);
+            const pad = n => n.toString().padStart(2, '0');
+            const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            document.getElementById('cms-time').value = formatted;
+        } else {
+            document.getElementById('cms-time').value = "";
+        }
     }
     if (post.category === 'information' && post.boardColumn) {
         document.getElementById('cms-board-column').value = post.boardColumn;
@@ -418,17 +426,36 @@ function createPostHtml(post) {
 
     // Special style for events to mimic the large card look
     if (post.category === 'events' && post.img) {
+        let isExpired = false;
+        let timeDisplay = post.date; // fallback
+
+        if (post.end_time) {
+            const endD = new Date(post.end_time);
+            timeDisplay = `Ends: ${endD.toLocaleDateString()} ${endD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+            if (new Date() > endD) {
+                isExpired = true;
+            }
+        }
+
+        const badgeTxt = isExpired ? "ENDED" : post.badge;
+        const badgeSty = isExpired ? "background: rgba(255,255,255,0.1); color: #888; border-color: #555;" : "";
+        const btnHtml = isExpired
+            ? `<button class="btn-secondary" disabled style="padding: 8px 16px; font-size: 14px; opacity: 0.5; pointer-events: auto; cursor: not-allowed;">Event Over</button>`
+            : `<button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto;">Join Now</button>`;
+        const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
+
         return `
       <div id="post-${post.id}" class="featured-card card event-card post-item" style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${post.img}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
         <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
         <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
         <div class="card-content" style="pointer-events: none;">
-          <span class="badge ${post.badgeClass}">${post.badge}</span>
+          <span class="badge ${post.badgeClass}" style="${badgeSty}">${badgeTxt}</span>
           <h3 class="card-title" style="margin-top:16px">${post.title}</h3>
           <p class="card-excerpt" style="margin-top:8px">${post.content}</p>
           <div class="event-meta" style="margin-top:24px">
-            <span class="mono">${post.date}</span >
-            <button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto;">Join Now</button>
+            <span class="mono" style="${timeSty}">${timeDisplay}</span >
+            ${btnHtml}
           </div>
         </div>
       </div>
@@ -740,11 +767,25 @@ if (publishBtn) {
             };
         }
         else if (category === 'events') {
+            let endTimeVal = null;
+            if (inputTime && inputTime.value) {
+                try {
+                    endTimeVal = new Date(inputTime.value).toISOString();
+                } catch (e) { }
+            }
+
+            let startTimeVal = new Date().toISOString();
+            if (editingPostId) {
+                const existing = postsDB.find(p => p.id === editingPostId);
+                // Preserve original creation time if it exists
+                if (existing && existing.date && existing.date !== "Unknown") startTimeVal = existing.date;
+            }
+
             payload = {
                 event_name: title,
                 description: body,
-                start_time: finalDate !== "Just Now" ? finalDate : new Date().toISOString(),
-                end_time: "", // Optional or could be added to UI later
+                start_time: startTimeVal,
+                end_time: endTimeVal,
                 active: true,
                 ...(img && { image: img })
             };
@@ -795,7 +836,8 @@ if (publishBtn) {
                     ...payload,
                     category,
                     title: title,
-                    date: finalDate !== "Just Now" ? finalDate : new Date().toISOString(),
+                    date: category === 'events' && payload.start_time ? payload.start_time : (finalDate !== "Just Now" ? finalDate : new Date().toISOString()),
+                    end_time: category === 'events' ? payload.end_time : null,
                     badge: badgeTxt,
                     badgeClass: badgeCls,
                     img: finalImageUrl,
