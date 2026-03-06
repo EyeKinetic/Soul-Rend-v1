@@ -125,6 +125,8 @@ window.deletePost = async function (id) {
 }
 
 // Helpers for entering/exiting edit mode
+const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
 window.editPost = function (id) {
     const post = postsDB.find(p => p.id === id);
     if (!post) return;
@@ -189,8 +191,15 @@ if (cancelEditBtn) {
 
 function switchView(targetId) {
     navLinks.forEach(l => l.classList.remove('active'));
-    const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
+    mobileNavLinks.forEach(l => l.classList.remove('active'));
+
+    // Update desktop nav
+    const targetLink = document.querySelector(`.nav-center .nav-link[data-target="${targetId}"]`);
     if (targetLink) targetLink.classList.add('active');
+
+    // Update mobile nav
+    const mobileTargetLink = document.querySelector(`.mobile-nav-link[data-target="${targetId}"]`);
+    if (mobileTargetLink) mobileTargetLink.classList.add('active');
 
     sections.forEach(s => {
         s.classList.remove('active');
@@ -242,6 +251,15 @@ navLinks.forEach(link => {
     link.addEventListener('click', () => switchView(link.getAttribute('data-target')));
 });
 
+mobileNavLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView(link.getAttribute('data-target'));
+        const mobileDropdown = document.getElementById('mobile-dropdown');
+        if (mobileDropdown) mobileDropdown.classList.remove('active');
+    });
+});
+
 const devPortal = document.getElementById('view-dev-portal');
 if (devPortal) devPortal.style.display = 'none';
 
@@ -271,6 +289,12 @@ window.addEventListener('click', (e) => {
         authModal.classList.remove('active');
     }
 
+    // Close mobile dropdown if clicking anywhere else
+    const mobileDropdown = document.getElementById('mobile-dropdown');
+    if (mobileDropdown && e.target.id !== 'mobile-menu-btn' && !e.target.closest('#mobile-menu-btn')) {
+        mobileDropdown.classList.remove('active');
+    }
+
     // Close footer dropdown if clicking anywhere else
     const contactDropdown = document.getElementById('contact-dropdown');
     if (contactDropdown && e.target.id !== 'contact-team-btn') {
@@ -291,6 +315,21 @@ if (contactTeamBtn && contactDropdown) {
     contactTeamBtn.addEventListener('click', (e) => {
         e.stopPropagation(); // prevent window click
         contactDropdown.classList.toggle('active');
+        // Close community dropdown if it's open
+        const communityDropdown = document.getElementById('community-dropdown');
+        if (communityDropdown) communityDropdown.classList.remove('active');
+    });
+}
+
+// --- Mobile Menu Dropdown Logic ---
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileDropdown = document.getElementById('mobile-dropdown');
+
+if (mobileMenuBtn && mobileDropdown) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mobileDropdown.classList.toggle('active');
+        if (contactDropdown) contactDropdown.classList.remove('active');
         // Close community dropdown if it's open
         const communityDropdown = document.getElementById('community-dropdown');
         if (communityDropdown) communityDropdown.classList.remove('active');
@@ -713,7 +752,7 @@ function resetInactivityTimer() {
                 console.error("Auto-logout error:", error);
             }
             document.body.classList.remove('dev-mode');
-            switchView('view-events');
+            switchView('view-announcements');
             alert("Session expired due to inactivity.");
         }, INACTIVITY_LIMIT);
     }
@@ -796,7 +835,7 @@ if (logoutBtn) {
             console.error("Logout error:", error);
         }
         document.body.classList.remove('dev-mode');
-        switchView('view-events');
+        switchView('view-announcements');
     });
 }
 

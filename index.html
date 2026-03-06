@@ -29,12 +29,23 @@
       </div>
     </div>
     <div class="nav-center">
-      <button class="nav-link active" data-target="view-events">Events</button>
+      <button class="nav-link active" data-target="view-announcements">Announcements</button>
       <button class="nav-link" data-target="view-patch-notes">Patch Notes</button>
-      <button class="nav-link" data-target="view-announcements">Announcements</button>
+      <button class="nav-link" data-target="view-events">Events</button>
       <button class="nav-link" data-target="view-information">Information</button>
     </div>
     <div class="nav-right" style="display: flex; gap: 16px; align-items: center;">
+      <div class="mobile-nav" style="position: relative;">
+        <button class="nav-link" id="mobile-menu-btn" aria-haspopup="true"
+          style="margin: 0; display: flex; align-items: center; gap: 4px; padding: 0;">Menu <span
+            style="font-size: 10px;">▼</span></button>
+        <div class="contact-dropdown" id="mobile-dropdown" style="top: 50px; right: 0; bottom: auto; padding: 8px 0;">
+          <a href="#" class="dropdown-item mobile-nav-link active" data-target="view-announcements">Announcements</a>
+          <a href="#" class="dropdown-item mobile-nav-link" data-target="view-patch-notes">Patch Notes</a>
+          <a href="#" class="dropdown-item mobile-nav-link" data-target="view-events">Events</a>
+          <a href="#" class="dropdown-item mobile-nav-link" data-target="view-information">Information</a>
+        </div>
+      </div>
       <button class="btn-secondary" id="music-toggle-btn"
         style="padding: 6px 12px; font-size: 14px; background: rgba(255,255,255,0.05);">
         🔊 Music
@@ -52,7 +63,7 @@
   <main id="app-container">
 
     <!-- === EVENTS === -->
-    <section id="view-events" class="view-section active">
+    <section id="view-events" class="view-section">
       <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
         <div class="main-feed" id="events-feed-container">
           <div class="section-header">
@@ -76,7 +87,7 @@
     </section>
 
     <!-- === ANNOUNCEMENTS === -->
-    <section id="view-announcements" class="view-section">
+    <section id="view-announcements" class="view-section active">
       <div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 900px;">
         <div class="main-feed" id="announcements-feed-container">
           <div class="section-header">
