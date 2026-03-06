@@ -83,7 +83,7 @@ async function loadFromAppwrite() {
 loadFromAppwrite();
 
 // --- Navigation Logic ---
-const navLinks = document.querySelectorAll('.nav-link');
+const navLinks = document.querySelectorAll('.nav-center .nav-link');
 const sections = document.querySelectorAll('.view-section');
 
 // Attach delete to window so inline onclick can see it
