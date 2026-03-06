@@ -407,8 +407,20 @@ window.openPostViewer = function (e, postId) {
 
     // Trello cards use specific badge text coloring natively
     if (post.category === 'information') {
-        const colColors = { "Shinigami": "#E50914", "Hollows": "#8e44ad", "Quincy": "#00D4FF", "General": "#F59E0B" };
-        const colorAccent = colColors[post.boardColumn] || colColors["General"];
+        const colColors = {
+            "Red": "#E50914",
+            "Purple": "#8e44ad",
+            "Blue": "#00D4FF",
+            "Orange": "#F59E0B",
+            "Green": "#10B981",
+            "Yellow": "#FBBF24",
+            "Pink": "#EC4899",
+            "Cyan": "#06B6D4",
+            "White": "#FFFFFF",
+            "Gray": "#9CA3AF"
+        };
+        const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (post.boardColumn || "").toLowerCase());
+        const colorAccent = lookup ? colColors[lookup] : "#FFFFFF";
         viewerBadge.style.background = 'rgba(0,0,0,0.5)';
         viewerBadge.style.color = colorAccent;
     } else {
@@ -612,14 +624,21 @@ function renderFeeds() {
     if (infoContainer) {
         // Defined column colors mapping roughly to the reference UI
         const colColors = {
-            "Shinigami": "#E50914",   // Vibrant Red
-            "Hollows": "#8e44ad",     // Purple/Dark
-            "Quincy": "#00D4FF",      // Blue
-            "General": "#F59E0B"      // Orange
+            "Red": "#E50914",
+            "Purple": "#8e44ad",
+            "Blue": "#00D4FF",
+            "Orange": "#F59E0B",
+            "Green": "#10B981",
+            "Yellow": "#FBBF24",
+            "Pink": "#EC4899",
+            "Cyan": "#06B6D4",
+            "White": "#FFFFFF",
+            "Gray": "#9CA3AF"
         };
 
         Object.keys(boardGroups).forEach(colName => {
-            const colorAccent = colColors[colName] || "#ffffff";
+            const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (colName || "").toLowerCase());
+            const colorAccent = lookup ? colColors[lookup] : "#ffffff";
             let cardsHtml = boardGroups[colName].map(post => {
                 let imgHtml = '';
                 if (post.img) {
