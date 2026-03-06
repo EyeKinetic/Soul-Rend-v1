@@ -523,17 +523,19 @@ function createPostHtml(post) {
         // Construct absolute position background layers so carousels can run underneath event content
         let eventBgHtml = '';
         if (post.img) {
-            const imgArray = post.img.split(',');
+            const imgArray = post.img.split(',').map(s => s.trim());
             if (imgArray.length === 1) {
                 eventBgHtml = `
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: url('${imgArray[0]}') center/cover;"></div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
+                    <img src="${imgArray[0]}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';">
+                </div>
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>
                 `;
             } else if (imgArray.length > 1) {
                 eventBgHtml = `
                 <div class="image-carousel" data-images="${post.img}" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">
-                    <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
-                    <img src="${imgArray[0]}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';">
+                    <img src="${imgArray[0]}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';">
                 </div>
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>
                 `;
@@ -939,7 +941,7 @@ if (publishBtn) {
                             ID.unique(),
                             file
                         );
-                        return storage.getFilePreview(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
+                        return storage.getFileView(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
                     });
 
                     const newUrls = await Promise.all(uploadPromises);
@@ -1141,4 +1143,3 @@ setInterval(() => {
         }, 500); // Must match transition duration in CSS
     });
 }, 4000); // Rotate every 4 seconds
-
