@@ -872,7 +872,22 @@ select.input-dark {
   }
 
   #open-dev-auth {
-    position: static;
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* Hide CMS/Dev Portal entirely on mobile */
+  #view-dev-portal {
+    display: none !important;
+  }
+
+  #auth-modal {
+    display: none !important;
+  }
+
+  body.dev-mode .delete-btn,
+  body.dev-mode .edit-btn {
+    display: none !important;
   }
 
   .logo-text {
