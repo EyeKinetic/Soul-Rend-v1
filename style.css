@@ -28,41 +28,14 @@ body {
   position: relative;
 }
 
-#bg-slideshow {
+#bg-canvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
   z-index: -1;
-  overflow: hidden;
-}
-
-.bg-slide {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.3;
-  /* Removed heavy blur filter for better performance */
-  will-change: opacity, transform;
-  transform: translateZ(0);
-  /* Hardware acceleration */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  transition: opacity 1.5s ease-in-out;
-}
-
-#bg-slide-top {
-  z-index: 2;
-}
-
-#bg-slide-bottom {
-  z-index: 1;
+  pointer-events: none;
 }
 
 body::before {
@@ -767,24 +740,30 @@ select.input-dark {
 }
 
 .trello-card {
-  background: #EBECF0;
+  background: #0A0B10;
+  /* Make it fit the theme more deeply */
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  color: #111;
+  color: #fff;
   padding: 12px;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .trello-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .trello-card-cover {
   width: 100%;
-  height: 140px;
+  height: 200px;
+  /* Increase image size */
   object-fit: cover;
   border-radius: 6px 6px 0 0;
   margin: -12px -12px 12px -12px;
@@ -792,7 +771,34 @@ select.input-dark {
   width: calc(100% + 24px);
 }
 
-/* --- FOOTER & DROPDOWN --- */
+.trello-card-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.trello-card-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.trello-card-excerpt {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  /* Limit text to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .app-footer {
   margin-top: 60px;
   padding: 24px 32px;

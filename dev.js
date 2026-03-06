@@ -181,10 +181,115 @@ loadFromAppwrite();
 
 // --- Navigation Logic ---
 const navLinks = document.querySelectorAll('.nav-center .nav-link');
-const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 const sections = document.querySelectorAll('.view-section');
 
+// Attach delete to window so inline onclick can see it
+window.deletePost = async function (id) {
+    if (confirm("Are you sure you want to delete this post?")) {
+        const postElement = document.getElementById(`post-${id}`);
+        if (postElement) postElement.style.animation = "fadeOut 0.3s ease forwards";
 
+        try {
+            const post = postsDB.find(p => p.id === id);
+            if (post) {
+                const collectionId = APPWRITE_CONFIG.collections[post.category];
+                await databases.deleteDocument(
+                    APPWRITE_CONFIG.databaseId,
+                    collectionId,
+                    id
+                );
+            }
+
+            postsDB = postsDB.filter(post => post.id !== id);
+            renderFeeds();
+
+            if (editingPostId === id) {
+                cancelEditMode();
+            }
+
+            const toastNode = document.getElementById('toast');
+            if (toastNode) {
+                toastNode.textContent = "Post Deleted!";
+                toastNode.classList.add('delete-toast');
+                toastNode.classList.add('show');
+                setTimeout(() => {
+                    toastNode.classList.remove('show');
+                    toastNode.classList.remove('delete-toast');
+                    setTimeout(() => toastNode.textContent = "Post Published!", 300);
+                }, 3000);
+            }
+        } catch (error) {
+            console.error("Failed to delete post:", error);
+            alert("Error deleting post from Database.");
+            if (postElement) postElement.style.animation = "";
+        }
+    }
+}
+
+// Helpers for entering/exiting edit mode
+const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+window.editPost = function (id) {
+    const post = postsDB.find(p => p.id === id);
+    if (!post) return;
+
+    // Switch view to dev portal to see the form
+    switchView('view-dev-portal');
+    window.scrollTo(0, 0);
+
+    // Populate form fields
+    document.getElementById('cms-title').value = post.title;
+    document.getElementById('cms-category').value = post.category;
+    document.getElementById('cms-category').dispatchEvent(new Event('change')); // trigger toggle
+    document.getElementById('cms-body').value = post.content;
+    document.getElementById('cms-img').value = post.img || '';
+    document.getElementById('cms-badge').value = post.badge;
+    const colorSelect = document.getElementById('cms-badge-color');
+    if (colorSelect && post.badgeClass) colorSelect.value = post.badgeClass;
+
+    if (post.category === 'events') {
+        if (post.end_time) {
+            const d = new Date(post.end_time);
+            const pad = n => n.toString().padStart(2, '0');
+            const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            document.getElementById('cms-time').value = formatted;
+        } else {
+            document.getElementById('cms-time').value = "";
+        }
+    }
+    if (post.category === 'information' && post.boardColumn) {
+        document.getElementById('cms-board-column').value = post.boardColumn;
+    }
+
+    // Set UI state
+    editingPostId = id;
+    document.getElementById('publish-btn').textContent = 'Update Post';
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+}
+
+function cancelEditMode() {
+    editingPostId = null;
+    document.getElementById('cms-title').value = '';
+    document.getElementById('cms-category').value = 'announcements';
+    document.getElementById('cms-category').dispatchEvent(new Event('change'));
+    document.getElementById('cms-body').value = '';
+    document.getElementById('cms-img').value = '';
+    document.getElementById('cms-badge').value = '';
+    const colorSelect = document.getElementById('cms-badge-color');
+    if (colorSelect) colorSelect.value = 'dev';
+    document.getElementById('cms-time').value = '';
+    document.getElementById('cms-board-column').value = '';
+
+    document.getElementById('publish-btn').textContent = 'Publish to Live Network';
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+}
+
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+if (cancelEditBtn) {
+    cancelEditBtn.addEventListener('click', cancelEditMode);
+}
 
 function switchView(targetId) {
     _doSwitchView(targetId);
@@ -770,6 +875,30 @@ function renderFeeds() {
             infoContainer.insertAdjacentHTML('beforeend', columnHtml);
         });
 
+        // 5. Render Category Navbar for the Information Board
+        const catContainer = document.getElementById('info-categories');
+        if (catContainer) {
+            catContainer.innerHTML = '';
+
+            // Generate distinct column names array
+            const cols = ['All', ...Object.keys(boardGroups)];
+
+            cols.forEach(col => {
+                const btn = document.createElement('button');
+                btn.className = 'info-category-btn btn-secondary';
+                btn.dataset.category = col;
+                btn.style.padding = '4px 12px';
+                btn.style.fontSize = '12px';
+                btn.style.borderRadius = '20px';
+                btn.style.borderColor = col === currentActiveCategory ? 'var(--secondary-accent)' : 'rgba(255,255,255,0.2)';
+                btn.style.color = '#fff';
+                btn.style.background = col === currentActiveCategory ? 'rgba(13, 215, 242, 0.2)' : 'transparent';
+                btn.textContent = col;
+
+                btn.onclick = () => filterWikiCategory(col);
+                catContainer.appendChild(btn);
+            });
+        }
     }
 
     // Refresh the countdown cache after rendering
@@ -778,11 +907,367 @@ function renderFeeds() {
     }
 }
 
+// --- Dev Portal Authentication ---
 
+const authModal = document.getElementById('auth-modal');
+const openDevAuthBtn = document.getElementById('open-dev-auth');
+const cancelAuthBtn = document.getElementById('auth-cancel');
+const submitAuthBtn = document.getElementById('auth-submit');
+const emailInput = document.getElementById('dev-email');
+const passwordInput = document.getElementById('dev-password');
+const authError = document.getElementById('auth-error');
+const logoutBtn = document.getElementById('logout-dev-btn');
+
+// --- Auto Logout Logic ---
+let inactivityTimer;
+const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes auto-logout
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    if (document.body.classList.contains('dev-mode')) {
+        inactivityTimer = setTimeout(async () => {
+            try {
+                await account.deleteSession('current');
+            } catch (error) {
+                console.error("Auto-logout error:", error);
+            }
+            document.body.classList.remove('dev-mode');
+            switchView('view-announcements');
+            alert("Session expired due to inactivity.");
+        }, INACTIVITY_LIMIT);
+    }
+}
+
+// Reset timer on user interaction
+window.addEventListener('mousemove', resetInactivityTimer);
+window.addEventListener('keypress', resetInactivityTimer);
+window.addEventListener('click', resetInactivityTimer);
+window.addEventListener('scroll', resetInactivityTimer);
+
+// Always require fresh login on dev portal load
+async function checkSession() {
+    try {
+        // Destroy any existing session so dev always requires fresh credentials
+        await account.deleteSession('current');
+    } catch (e) {
+        // No session to delete, that's fine
+    }
+
+    // Force auth modal
+    document.body.classList.remove('dev-mode');
+    authModal.classList.add('active');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (authError) authError.style.display = 'none';
+
+    // Hide CMS elements to prevent peeking
+    const devPortal = document.getElementById('view-dev-portal');
+    if (devPortal) devPortal.style.display = 'none';
+}
+checkSession();
+
+// The user must authenticate; no "Cancel" or "Open btn" allowed in dev portal
+if (cancelAuthBtn) {
+    cancelAuthBtn.addEventListener('click', () => {
+        // If they cancel, redirect back to home page
+        window.location.href = '/index.html';
+    });
+}
+
+async function authenticate() {
+    submitAuthBtn.textContent = 'Logging in...';
+    submitAuthBtn.disabled = true;
+    authError.style.display = 'none';
+
+    try {
+        // Appwrite Login
+        await account.createEmailPasswordSession(
+            emailInput.value,
+            passwordInput.value
+        );
+
+        authModal.classList.remove('active');
+        document.body.classList.add('dev-mode');
+        resetInactivityTimer();
+        switchView('view-dev-portal');
+
+    } catch (error) {
+        console.error("Login failed:", error);
+        authError.textContent = error.message || "Invalid credentials.";
+        authError.style.display = 'block';
+        passwordInput.value = '';
+        if (emailInput) emailInput.focus();
+    } finally {
+        submitAuthBtn.textContent = 'Authenticate';
+        submitAuthBtn.disabled = false;
+    }
+}
+
+if (submitAuthBtn) submitAuthBtn.addEventListener('click', authenticate);
+if (passwordInput) {
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') authenticate();
+    });
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await account.deleteSession('current');
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
+        document.body.classList.remove('dev-mode');
+        window.location.href = '/index.html';
+    });
+}
+
+
+// --- CMS Publishing Logic ---
+const publishBtn = document.getElementById('publish-btn');
+const inputTitle = document.getElementById('cms-title');
+const inputCategory = document.getElementById('cms-category');
+const inputTime = document.getElementById('cms-time');
+const inputTimeGroup = document.getElementById('cms-time-group');
+const inputBoardGroup = document.getElementById('cms-board-column-group');
+const inputBoardCol = document.getElementById('cms-board-column');
+const inputBadge = document.getElementById('cms-badge');
+const inputBadgeColor = document.getElementById('cms-badge-color');
+const inputImg = document.getElementById('cms-img');
+const inputImgFile = document.getElementById('cms-img-file');
+const inputBody = document.getElementById('cms-body');
+const toastNode = document.getElementById('toast');
+
+// Handle local image file uploads
+let selectedImageFiles = [];
+
+if (inputImgFile) {
+    inputImgFile.addEventListener('change', function () {
+        if (this.files && this.files.length > 0) {
+            selectedImageFiles = Array.from(this.files);
+            inputImg.value = `Selected: ${selectedImageFiles.length} file(s)`;
+
+            // Optional: local preview logic could go here if needed for multiple images
+        } else {
+            selectedImageFiles = [];
+        }
+    });
+}
+
+
+// Toggle time/board inputs based on category
+if (inputCategory) {
+    inputCategory.addEventListener('change', (e) => {
+        if (e.target.value === 'events') {
+            inputTimeGroup.style.display = 'block';
+            if (inputBoardGroup) inputBoardGroup.style.display = 'none';
+        } else if (e.target.value === 'information') {
+            inputTimeGroup.style.display = 'none';
+            if (inputBoardGroup) inputBoardGroup.style.display = 'block';
+        } else {
+            inputTimeGroup.style.display = 'none';
+            if (inputBoardGroup) inputBoardGroup.style.display = 'none';
+        }
+    });
+}
+
+if (publishBtn) {
+    publishBtn.addEventListener('click', () => {
+        const title = inputTitle.value.trim();
+        const category = inputCategory.value;
+        const body = inputBody.value.trim();
+        const img = inputImg.value.trim();
+
+        if (!title || !body) {
+            alert("Please enter a Title and Body content.");
+            return;
+        }
+
+        // Determine badge text/color based on category & input
+        let badgeTxt = inputBadge && inputBadge.value.trim() ? inputBadge.value.trim() : "UPDATE";
+        let badgeCls = inputBadgeColor ? inputBadgeColor.value : "dev";
+        let finalDate = "Just Now";
+
+        if (category === "announcements" && (!inputBadge || !inputBadge.value.trim())) badgeTxt = "ANNOUNCEMENT";
+        if (category === "events") {
+            if (!inputBadge || !inputBadge.value.trim()) badgeTxt = "EVENT";
+            finalDate = inputTime.value.trim() || "Ongoing";
+        }
+        if (category === "patch-notes" && (!inputBadge || !inputBadge.value.trim())) badgeTxt = "PATCH NOTE";
+        if (category === "information" && (!inputBadge || !inputBadge.value.trim())) badgeTxt = "INFO";
+
+        let customBoardCol = "General";
+        if (category === "information" && inputBoardCol && inputBoardCol.value.trim()) {
+            customBoardCol = inputBoardCol.value.trim();
+        }
+
+        // Determine Appwrite schema payload based on selected category
+        let payload = {};
+
+        if (category === 'announcements') {
+            payload = {
+                headline: title,
+                content: body,
+                timestamp: finalDate !== "Just Now" ? finalDate : new Date().toISOString(),
+                ...(img && { image: img })
+            };
+        }
+        else if (category === 'events') {
+            let endTimeVal = null;
+            if (inputTime && inputTime.value) {
+                try {
+                    endTimeVal = new Date(inputTime.value).toISOString();
+                } catch (e) { }
+            }
+
+            let startTimeVal = new Date().toISOString();
+            if (editingPostId) {
+                const existing = postsDB.find(p => p.id === editingPostId);
+                // Preserve original creation time if it exists
+                if (existing && existing.date && existing.date !== "Unknown") startTimeVal = existing.date;
+            }
+
+            payload = {
+                event_name: title,
+                description: body,
+                start_time: startTimeVal,
+                end_time: endTimeVal,
+                active: true,
+                ...(img && { image: img })
+            };
+        }
+        else if (category === 'patch-notes') {
+            payload = {
+                version_number: title, // You might want a dedicated field for this later, using Title for now
+                notes: body,
+                date: finalDate !== "Just Now" ? finalDate : new Date().toISOString(),
+                ...(img && { image: img })
+            };
+        }
+        else if (category === 'information') {
+            payload = {
+                title: title,
+                content: body,
+                category: customBoardCol || "General",
+                ...(img && { image: img })
+            };
+        }
+
+        const submitData = async () => {
+            publishBtn.textContent = "Publishing...";
+            publishBtn.disabled = true;
+            try {
+                let finalImageUrl = img; // default to whatever URL or text was typed manually
+
+                // If a real file was selected via the "Upload File" button
+                if (selectedImageFiles && selectedImageFiles.length > 0) {
+                    publishBtn.textContent = `Uploading ${selectedImageFiles.length} Image(s)...`;
+
+                    // Upload all files concurrently
+                    const uploadPromises = selectedImageFiles.map(async (file) => {
+                        const uploadedFile = await storage.createFile(
+                            APPWRITE_CONFIG.bucketId,
+                            ID.unique(),
+                            file
+                        );
+                        return storage.getFileView(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
+                    });
+
+                    const newUrls = await Promise.all(uploadPromises);
+
+                    // Maintain existing manually typed comma URLs if they exist and append the new ones,
+                    // otherwise just use the new ones.
+                    if (img && !img.startsWith('Selected: ')) {
+                        finalImageUrl = img + ',' + newUrls.join(',');
+                    } else {
+                        finalImageUrl = newUrls.join(',');
+                    }
+
+                    payload.image = finalImageUrl;
+                } else if (img && img.startsWith('Selected: ')) {
+                    // Failsafe in case a "Selected" string got caught without a file mapping
+                    finalImageUrl = "";
+                    payload.image = "";
+                }
+
+                const localPostData = {
+                    ...payload,
+                    category,
+                    title: title,
+                    date: category === 'events' && payload.start_time ? payload.start_time : (finalDate !== "Just Now" ? finalDate : new Date().toISOString()),
+                    end_time: category === 'events' ? payload.end_time : null,
+                    badge: badgeTxt,
+                    badgeClass: badgeCls,
+                    img: finalImageUrl,
+                    boardColumn: customBoardCol
+                };
+
+                // modify existing or create new post
+                if (editingPostId) {
+                    const postIndex = postsDB.findIndex(p => p.id === editingPostId);
+                    const oldCategory = postIndex !== -1 ? postsDB[postIndex].category : category;
+
+                    if (oldCategory !== category) {
+                        // Moving between collections
+                        await databases.deleteDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[oldCategory], editingPostId);
+                        const newDoc = await databases.createDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], ID.unique(), payload);
+                        if (postIndex !== -1) postsDB[postIndex] = { ...localPostData, id: newDoc.$id };
+                    } else {
+                        await databases.updateDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], editingPostId, payload);
+                        if (postIndex !== -1) postsDB[postIndex] = { ...postsDB[postIndex], ...localPostData };
+                    }
+
+                    editingPostId = null;
+                } else {
+                    const newDoc = await databases.createDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], ID.unique(), payload);
+                    const newPost = { ...localPostData, id: newDoc.$id };
+                    postsDB.push(newPost);
+                }
+
+                // Reset file selector state
+                selectedImageFiles = [];
+                if (inputImgFile) inputImgFile.value = "";
+
+                renderFeeds();
+                cancelEditMode();
+
+                if (toastNode) {
+                    toastNode.classList.add('show');
+                    setTimeout(() => {
+                        toastNode.classList.remove('show');
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error("Appwrite publish error:", error);
+                alert("Failed to publish to global database. Check console for details.");
+            } finally {
+                publishBtn.textContent = editingPostId ? "Update Post" : "Publish to Live Network";
+                publishBtn.disabled = false;
+            }
+        };
+
+        submitData();
+    });
+}
+
+// --- CMS Toolbar Buttons ---
+document.querySelectorAll('.toolbar-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const tag = e.target.getAttribute('data-tag');
+        if (!tag) return;
+
+        // Simple mock insertion at the end for demonstration 
+        // (A real implementation would wrap selected text)
+        if (inputBody) {
+            inputBody.value += ` ${tag} `;
+            inputBody.focus();
+        }
+    });
+});
 
 // --- Live Ticking Countdowns ---
 // Cache the event cards that specifically have an end time so we don't query the whole document every second
-var tickingEventCards = [];
+let tickingEventCards = [];
 function updateTickingCardsCache() {
     tickingEventCards = Array.from(document.querySelectorAll('.event-card[data-endtime]'));
 }
