@@ -1194,3 +1194,48 @@ setInterval(() => {
         }, 500); // Must match transition duration in CSS
     });
 }, 4000); // Rotate every 4 seconds
+
+// --- Background Slideshow Rotation ---
+const bgSlides = ['/image.png', '/Copy_of_goat.png', '/gat_1.png'];
+let bgCurrentIndex = 0;
+
+// Keep slideshow height synced to stop at the footer
+const bgSlideshow = document.getElementById('bg-slideshow');
+const appFooter = document.querySelector('.app-footer');
+function syncBgHeight() {
+    if (bgSlideshow) {
+        const footerTop = appFooter ? appFooter.offsetTop : document.documentElement.scrollHeight;
+        bgSlideshow.style.height = footerTop + 'px';
+    }
+}
+syncBgHeight();
+window.addEventListener('resize', syncBgHeight);
+setInterval(syncBgHeight, 2000); // Periodic sync for dynamic content
+
+setInterval(() => {
+    const topSlide = document.getElementById('bg-slide-top');
+    const bottomSlide = document.getElementById('bg-slide-bottom');
+    if (!topSlide || !bottomSlide) return;
+
+    const nextIndex = (bgCurrentIndex + 1) % bgSlides.length;
+
+    // Prepare the bottom layer with the next image
+    bottomSlide.style.backgroundImage = `url('${bgSlides[nextIndex]}')`;
+    bottomSlide.style.opacity = '0.3';
+
+    // Fade out the top layer to reveal the bottom
+    topSlide.style.opacity = '0';
+
+    // After transition completes, swap top to the new image and restore
+    setTimeout(() => {
+        topSlide.style.transition = 'none';
+        topSlide.style.backgroundImage = `url('${bgSlides[nextIndex]}')`;
+        topSlide.style.opacity = '0.3';
+
+        setTimeout(() => {
+            topSlide.style.transition = 'opacity 1.5s ease-in-out';
+        }, 50);
+
+        bgCurrentIndex = nextIndex;
+    }, 1500); // Must match CSS transition duration
+}, 8000); // Rotate every 8 seconds
