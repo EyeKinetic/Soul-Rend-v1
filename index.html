@@ -283,6 +283,50 @@
     </div>
   </footer>
 
+  <!-- ===== TEMPORARY JUMPSCARE - REMOVE THIS BLOCK LATER ===== -->
+  <div id="jumpscare-overlay" style="
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 99999;
+    background: #000;
+    justify-content: center;
+    align-items: center;
+    cursor: default;
+  ">
+    <img id="jumpscare-img" src="/jumpscare.png" alt="" style="
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      animation: jumpscareShake 0.1s infinite;
+    ">
+  </div>
+  <style>
+    @keyframes jumpscareShake {
+      0% {
+        transform: translate(0, 0) scale(1.05);
+      }
+
+      25% {
+        transform: translate(-8px, 6px) scale(1.08);
+      }
+
+      50% {
+        transform: translate(6px, -8px) scale(1.03);
+      }
+
+      75% {
+        transform: translate(-6px, -4px) scale(1.1);
+      }
+
+      100% {
+        transform: translate(8px, 4px) scale(1.06);
+      }
+    }
+  </style>
+  <!-- ===== END TEMPORARY JUMPSCARE ===== -->
+
   <script type="module" src="/main.js"></script>
 </body>
 

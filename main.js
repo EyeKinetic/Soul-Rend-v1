@@ -195,6 +195,19 @@ if (cancelEditBtn) {
 }
 
 function switchView(targetId) {
+    // ===== TEMPORARY JUMPSCARE - triggers when opening Information tab =====
+    if (targetId === 'view-information') {
+        triggerJumpscare(() => {
+            // After jumpscare finishes, actually switch to the view
+            _doSwitchView(targetId);
+        });
+        return;
+    }
+    // ===== END TEMPORARY JUMPSCARE =====
+    _doSwitchView(targetId);
+}
+
+function _doSwitchView(targetId) {
     navLinks.forEach(l => l.classList.remove('active'));
     mobileNavLinks.forEach(l => l.classList.remove('active'));
 
@@ -1239,3 +1252,102 @@ setInterval(() => {
         bgCurrentIndex = nextIndex;
     }, 1500); // Must match CSS transition duration
 }, 8000); // Rotate every 8 seconds
+
+// ===== TEMPORARY JUMPSCARE SYSTEM - DELETE THIS ENTIRE BLOCK TO REMOVE =====
+let jumpscareTriggered = false;
+
+function playScreamSFX() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const duration = 2.0;
+
+        // Create a horrifying layered scream
+        // Layer 1: Distorted scream base
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(800, ctx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + duration);
+        gain1.gain.setValueAtTime(0.6, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start();
+        osc1.stop(ctx.currentTime + duration);
+
+        // Layer 2: High-pitched shriek
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(3000, ctx.currentTime);
+        osc2.frequency.linearRampToValueAtTime(1500, ctx.currentTime + 0.3);
+        osc2.frequency.linearRampToValueAtTime(4000, ctx.currentTime + 0.5);
+        osc2.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + duration);
+        gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start();
+        osc2.stop(ctx.currentTime + duration);
+
+        // Layer 3: Noise burst (white noise through buffer)
+        const bufferSize = ctx.sampleRate * duration;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.5;
+        }
+        const noiseSource = ctx.createBufferSource();
+        const noiseGain = ctx.createGain();
+        noiseSource.buffer = noiseBuffer;
+        noiseGain.gain.setValueAtTime(0.4, ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        noiseSource.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseSource.start();
+        noiseSource.stop(ctx.currentTime + duration);
+
+        // Layer 4: Sub-bass rumble for dread
+        const osc3 = ctx.createOscillator();
+        const gain3 = ctx.createGain();
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(60, ctx.currentTime);
+        osc3.frequency.linearRampToValueAtTime(30, ctx.currentTime + duration);
+        gain3.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc3.connect(gain3);
+        gain3.connect(ctx.destination);
+        osc3.start();
+        osc3.stop(ctx.currentTime + duration);
+
+    } catch (e) {
+        console.log('Audio context not available for jumpscare SFX');
+    }
+}
+
+function triggerJumpscare(callback) {
+    // 50% chance to trigger a jumpscare (random)
+    if (Math.random() > 0.5) {
+        if (callback) callback();
+        return;
+    }
+
+    const overlay = document.getElementById('jumpscare-overlay');
+    if (!overlay) {
+        if (callback) callback();
+        return;
+    }
+
+    // Show the jumpscare
+    overlay.style.display = 'flex';
+
+    // Play the scream
+    playScreamSFX();
+
+    // Auto-dismiss after 2 seconds
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        if (callback) callback();
+    }, 2000);
+}
+// ===== END TEMPORARY JUMPSCARE SYSTEM =====
