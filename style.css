@@ -534,6 +534,48 @@ select.input-dark {
   border: 1px solid var(--secondary-accent);
 }
 
+.badge.news {
+  background: rgba(0, 212, 255, 0.1);
+  color: #00D4FF;
+  border: 1px solid #00D4FF;
+}
+
+.badge.hollows {
+  background: rgba(142, 68, 173, 0.1);
+  color: #8e44ad;
+  border: 1px solid #8e44ad;
+}
+
+.badge.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+  border: 1px solid #10B981;
+}
+
+.badge.warning {
+  background: rgba(251, 191, 36, 0.1);
+  color: #FBBF24;
+  border: 1px solid #FBBF24;
+}
+
+.badge.pink {
+  background: rgba(236, 72, 153, 0.1);
+  color: #EC4899;
+  border: 1px solid #EC4899;
+}
+
+.badge.default {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border: 1px solid #FFFFFF;
+}
+
+.badge.gray {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9CA3AF;
+  border: 1px solid #9CA3AF;
+}
+
 /* Sidebar Widgets */
 .sidebar-feed {
   display: flex;
