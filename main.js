@@ -1,9 +1,11 @@
 import { inject } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import './style.css';
 import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/appwrite.js';
 
 // Initialize Vercel Analytics tracking
 inject();
+injectSpeedInsights();
 
 let postsDB = [];
 let editingPostId = null;
@@ -399,6 +401,19 @@ const playNextTrack = () => {
 if (bgAudio) {
     bgAudio.addEventListener('ended', playNextTrack);
 }
+
+// Pause audio if the user leaves the tab or minimizes the browser on mobile
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        if (isMusicPlaying && bgAudio) {
+            bgAudio.pause();
+        }
+    } else {
+        if (isMusicPlaying && bgAudio) {
+            bgAudio.play().catch(e => console.log("Audio play prevented on resume:", e));
+        }
+    }
+});
 
 const updateAudioUI = (playing) => {
     isMusicPlaying = playing;
@@ -1212,18 +1227,7 @@ setInterval(() => {
 const bgSlides = ['/image.png', '/Copy_of_goat.png', '/gat_1.png'];
 let bgCurrentIndex = 0;
 
-// Keep slideshow height synced to stop at the footer
-const bgSlideshow = document.getElementById('bg-slideshow');
-const appFooter = document.querySelector('.app-footer');
-function syncBgHeight() {
-    if (bgSlideshow) {
-        const footerTop = appFooter ? appFooter.offsetTop : document.documentElement.scrollHeight;
-        bgSlideshow.style.height = footerTop + 'px';
-    }
-}
-syncBgHeight();
-window.addEventListener('resize', syncBgHeight);
-setInterval(syncBgHeight, 2000); // Periodic sync for dynamic content
+// Keep slideshow height fixed (handled via CSS `position: fixed` now)
 
 setInterval(() => {
     const topSlide = document.getElementById('bg-slide-top');
