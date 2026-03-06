@@ -1326,11 +1326,12 @@ function playScreamSFX() {
 }
 
 function triggerJumpscare(callback) {
-    // 50% chance to trigger a jumpscare (random)
-    if (Math.random() > 0.5) {
+    // Only trigger once per session to keep the surprise
+    if (jumpscareTriggered) {
         if (callback) callback();
         return;
     }
+    jumpscareTriggered = true;
 
     const overlay = document.getElementById('jumpscare-overlay');
     if (!overlay) {
