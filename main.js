@@ -508,15 +508,36 @@ function createPostHtml(post) {
             : `<a href="https://discord.gg/EwgsJSPAyy" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">Join Now</button></a>`;
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
-        // Get the first image for the background if it's an array
-        let bgImgRaw = post.img || "";
-        if (bgImgRaw.includes(',')) bgImgRaw = bgImgRaw.split(',')[0];
+        // Construct absolute position background layers so carousels can run underneath event content
+        let eventBgHtml = '';
+        if (post.img) {
+            const imgArray = post.img.split(',');
+            if (imgArray.length === 1) {
+                eventBgHtml = `
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: url('${imgArray[0]}') center/cover;"></div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>
+                `;
+            } else if (imgArray.length > 1) {
+                eventBgHtml = `
+                <div class="image-carousel" data-images="${post.img}" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">
+                    <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="${imgArray[0]}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>
+                `;
+            }
+        } else {
+            eventBgHtml = `
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)); pointer-events: none;"></div>
+             `;
+        }
 
         return `
-      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${bgImgRaw}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
+      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, '${post.id}')">
+        ${eventBgHtml}
         <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
-        <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
-        <div class="card-content" style="pointer-events: none;">
+        <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')" style="z-index: 10;">Edit Post</button>
+        <div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">
           <span class="badge ${post.badgeClass}" style="${badgeSty}">${badgeTxt}</span>
           <h3 class="card-title" style="margin-top:16px">${post.title}</h3>
           <p class="card-excerpt" style="margin-top:8px">${post.content}</p>

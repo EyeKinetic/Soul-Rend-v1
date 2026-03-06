@@ -17,6 +17,7 @@ async function checkEvents() {
             console.log(JSON.stringify(response.documents.map(d => ({
                 id: d.$id,
                 title: d.event_name,
+                image: d.image || d.img || "NULL",
                 end_time: d.end_time,
                 start_time: d.start_time
             })), null, 2));
