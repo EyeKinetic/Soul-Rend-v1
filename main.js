@@ -445,8 +445,26 @@ function createPostHtml(post) {
 
     let displayDate = formatDate(post.date);
 
+    let imgHtml = '';
     const fallbackImg = "https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable";
-    let imgHtml = post.img ? `<img src="${post.img}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">` : '';
+
+    if (post.img) {
+        const imgArray = post.img.split(',');
+        if (imgArray.length === 1) {
+            // Single Image Logic
+            imgHtml = `<img src="${imgArray[0]}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
+        } else if (imgArray.length > 1) {
+            // Multi-Image Carousel Logic
+            // The top image sits at z-index 2 and crossfades. The bottom image sits at z-index 1.
+            imgHtml = `
+            <div class="image-carousel" data-images="${post.img}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
+                <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
+                <img src="${imgArray[0]}" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
+            </div>
+            `;
+        }
+    }
+
     let paddingStyle = post.img ? 'padding: 20px;' : '';
 
     // Special style for events to mimic the large card look
@@ -487,8 +505,12 @@ function createPostHtml(post) {
             : `<a href="https://discord.gg/EwgsJSPAyy" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">Join Now</button></a>`;
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
+        // Get the first image for the background if it's an array
+        let bgImgRaw = post.img || "";
+        if (bgImgRaw.includes(',')) bgImgRaw = bgImgRaw.split(',')[0];
+
         return `
-      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${post.img}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
+      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="background: linear-gradient(rgba(10, 5, 5, 0.9), rgba(10, 5, 5, 0.9)), url('${bgImgRaw}') center/cover; padding: 32px; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
         <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
         <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
         <div class="card-content" style="pointer-events: none;">
@@ -575,7 +597,20 @@ function renderFeeds() {
         Object.keys(boardGroups).forEach(colName => {
             const colorAccent = colColors[colName] || "#ffffff";
             let cardsHtml = boardGroups[colName].map(post => {
-                let imgHtml = post.img ? `<img src="${post.img}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">` : '';
+                let imgHtml = '';
+                if (post.img) {
+                    const imgArray = post.img.split(',');
+                    if (imgArray.length === 1) {
+                        imgHtml = `<img src="${imgArray[0]}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">`;
+                    } else if (imgArray.length > 1) {
+                        imgHtml = `
+                        <div class="image-carousel trello-card-cover" data-images="${post.img}" data-current="0" style="position:relative; width:100%; height:120px;">
+                            <img src="${imgArray[1]}" class="carousel-bottom" style="height:100%;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
+                            <img src="${imgArray[0]}" class="carousel-top" style="height:100%;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
+                        </div>
+                        `;
+                    }
+                }
                 return `
                   <div class="trello-card post-item" id="post-${post.id}" onclick="openPostViewer(event, '${post.id}')">
                     <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost('${post.id}')">Delete</button>
@@ -730,22 +765,17 @@ const inputBody = document.getElementById('cms-body');
 const toastNode = document.getElementById('toast');
 
 // Handle local image file uploads
-let selectedImageFile = null;
+let selectedImageFiles = [];
 
 if (inputImgFile) {
     inputImgFile.addEventListener('change', function () {
-        if (this.files && this.files[0]) {
-            selectedImageFile = this.files[0];
-            inputImg.value = `Selected: ${selectedImageFile.name}`;
+        if (this.files && this.files.length > 0) {
+            selectedImageFiles = Array.from(this.files);
+            inputImg.value = `Selected: ${selectedImageFiles.length} file(s)`;
 
-            // Generate a local preview for the viewer (optional but requested base behavior)
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                // We keep the actual file for Appwrite, but could use this for a local live preview
-            };
-            reader.readAsDataURL(selectedImageFile);
+            // Optional: local preview logic could go here if needed for multiple images
         } else {
-            selectedImageFile = null;
+            selectedImageFiles = [];
         }
     });
 }
@@ -856,18 +886,30 @@ if (publishBtn) {
                 let finalImageUrl = img; // default to whatever URL or text was typed manually
 
                 // If a real file was selected via the "Upload File" button
-                if (selectedImageFile) {
-                    // Upload to Appwrite Storage Bucket
-                    publishBtn.textContent = "Uploading Image...";
-                    const uploadedFile = await storage.createFile(
-                        APPWRITE_CONFIG.bucketId,
-                        ID.unique(),
-                        selectedImageFile
-                    );
+                if (selectedImageFiles && selectedImageFiles.length > 0) {
+                    publishBtn.textContent = `Uploading ${selectedImageFiles.length} Image(s)...`;
 
-                    // Use getFilePreview which generates a public URL without enforcing strict session cookies like getFileView does
-                    finalImageUrl = storage.getFilePreview(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
-                    payload.image = finalImageUrl; // Update the Appwrite schema payload
+                    // Upload all files concurrently
+                    const uploadPromises = selectedImageFiles.map(async (file) => {
+                        const uploadedFile = await storage.createFile(
+                            APPWRITE_CONFIG.bucketId,
+                            ID.unique(),
+                            file
+                        );
+                        return storage.getFilePreview(APPWRITE_CONFIG.bucketId, uploadedFile.$id);
+                    });
+
+                    const newUrls = await Promise.all(uploadPromises);
+
+                    // Maintain existing manually typed comma URLs if they exist and append the new ones,
+                    // otherwise just use the new ones.
+                    if (img && !img.startsWith('Selected: ')) {
+                        finalImageUrl = img + ',' + newUrls.join(',');
+                    } else {
+                        finalImageUrl = newUrls.join(',');
+                    }
+
+                    payload.image = finalImageUrl;
                 } else if (img && img.startsWith('Selected: ')) {
                     // Failsafe in case a "Selected" string got caught without a file mapping
                     finalImageUrl = "";
@@ -909,7 +951,7 @@ if (publishBtn) {
                 }
 
                 // Reset file selector state
-                selectedImageFile = null;
+                selectedImageFiles = [];
                 if (inputImgFile) inputImgFile.value = "";
 
                 renderFeeds();
@@ -1012,3 +1054,48 @@ setInterval(() => {
         }
     });
 }, 1000);
+
+// --- Live Image Carousel Auto-Rotation ---
+setInterval(() => {
+    document.querySelectorAll('.image-carousel').forEach(carousel => {
+        const rawImages = carousel.getAttribute('data-images');
+        if (!rawImages) return;
+
+        const images = rawImages.split(',');
+        if (images.length <= 1) return; // No need to rotate a single image
+
+        let currentIndex = parseInt(carousel.getAttribute('data-current') || '0', 10);
+        const topImg = carousel.querySelector('.carousel-top');
+        const bottomImg = carousel.querySelector('.carousel-bottom');
+
+        if (!topImg || !bottomImg) return;
+
+        // Calculate the next index
+        const nextIndex = (currentIndex + 1) % images.length;
+
+        // 1. Prepare bottom image to be the NEXT image
+        bottomImg.src = images[nextIndex];
+
+        // 2. Trigger CSS Crossfade (Fade out the current top image to reveal the bottom one)
+        topImg.style.opacity = '0';
+
+        // 3. After the CSS transition finishes (500ms based on style.css), reset state
+        setTimeout(() => {
+            // Snap the top image to the new image while invisible
+            topImg.src = images[nextIndex];
+
+            // Instantly restore opacity (requires briefly disabling transition to avoid reverse fade)
+            topImg.style.transition = 'none';
+            topImg.style.opacity = '1';
+
+            // Re-enable transition for the NEXT cycle
+            setTimeout(() => {
+                topImg.style.transition = 'opacity 0.5s ease-in-out';
+            }, 50);
+
+            // Update tracking index
+            carousel.setAttribute('data-current', nextIndex);
+        }, 500); // Must match transition duration in CSS
+    });
+}, 4000); // Rotate every 4 seconds
+
