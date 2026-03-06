@@ -33,24 +33,25 @@ async function loadFromAppwrite() {
                 if (category === 'announcements') {
                     mappedDoc.title = doc.headline || "Untitled";
                     mappedDoc.content = doc.content || "";
-                    mappedDoc.date = doc.timestamp || "Unknown";
+                    mappedDoc.date = doc.timestamp || doc.$createdAt || "Unknown";
                     mappedDoc.badge = "ANNOUNCEMENT";
                 } else if (category === 'events') {
                     mappedDoc.title = doc.event_name || "Untitled";
                     mappedDoc.content = doc.description || "";
-                    mappedDoc.date = doc.start_time || "Unknown";
+                    mappedDoc.date = doc.start_time || doc.$createdAt || "Unknown";
                     mappedDoc.end_time = doc.end_time || null; // Captured from DB for expiration logic
                     mappedDoc.badge = "EVENT";
                     mappedDoc.badgeClass = "event";
                 } else if (category === 'patch-notes') {
                     mappedDoc.title = doc.version_number || "Untitled";
                     mappedDoc.content = doc.notes || "";
-                    mappedDoc.date = doc.date || "Unknown";
+                    mappedDoc.date = doc.date || doc.$createdAt || "Unknown";
                     mappedDoc.badge = "PATCH NOTE";
                 } else if (category === 'information') {
                     mappedDoc.title = doc.title || "Untitled";
                     mappedDoc.content = doc.content || "";
                     mappedDoc.boardColumn = doc.category || undefined;
+                    mappedDoc.date = doc.$createdAt || "Unknown";
                     mappedDoc.badge = "INFO";
                     mappedDoc.badgeClass = "lore";
                 }
@@ -606,7 +607,13 @@ function renderFeeds() {
     const boardGroups = {};
 
     // 3. Render all posts
-    [...postsDB].reverse().forEach(post => {
+    [...postsDB].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        const timeA = isNaN(dateA) ? 0 : dateA;
+        const timeB = isNaN(dateB) ? 0 : dateB;
+        return timeB - timeA;
+    }).forEach(post => {
         // Standard feeds
         if (post.category !== 'information') {
             const container = containers[post.category];
