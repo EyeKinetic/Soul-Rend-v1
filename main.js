@@ -417,7 +417,10 @@ window.openPostViewer = function (e, postId) {
     }
 
     if (post.img) {
-        viewerImg.src = post.img;
+        let firstImg = post.img;
+        if (firstImg.includes(',')) firstImg = firstImg.split(',')[0];
+
+        viewerImg.src = firstImg;
         viewerImg.style.display = 'block';
         viewerImg.onerror = function () {
             this.onerror = null;
