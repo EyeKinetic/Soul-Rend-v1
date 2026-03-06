@@ -1289,6 +1289,3 @@ setInterval(() => {
         bgCurrentIndex = nextIndex;
     }, 1500); // Must match CSS transition duration
 }, 8000); // Rotate every 8 seconds
-
-// ===== INITIALIZATION & CLEANUP DONE =====
-// ===== END TEMPORARY JUMPSCARE SYSTEM =====
