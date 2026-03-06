@@ -1,6 +1,6 @@
 import { inject } from '@vercel/analytics';
 import './style.css';
-import { databases, account, storage, APPWRITE_CONFIG, ID } from './src/appwrite.js';
+import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/appwrite.js';
 
 // Initialize Vercel Analytics tracking
 inject();
@@ -18,7 +18,11 @@ async function loadFromAppwrite() {
             const collectionId = APPWRITE_CONFIG.collections[category];
             const response = await databases.listDocuments(
                 APPWRITE_CONFIG.databaseId,
-                collectionId
+                collectionId,
+                [
+                    Query.orderDesc('$createdAt'),
+                    Query.limit(100)
+                ]
             );
 
             // Map Appwrite documents to our frontend structure
@@ -26,8 +30,9 @@ async function loadFromAppwrite() {
                 let mappedDoc = {
                     id: doc.$id,
                     category: category,
-                    img: doc.image || doc.img || "", // Read image property if it exists
-                    badgeClass: "dev" // Default
+                    img: doc.image || doc.img || "",
+                    badgeClass: "dev",
+                    createdAt: doc.$createdAt || "" // Always store for reliable sorting
                 };
 
                 if (category === 'announcements') {
@@ -645,10 +650,10 @@ function renderFeeds() {
     // Group Information posts by their defined "boardColumn" or default to "General"
     const boardGroups = {};
 
-    // 3. Render all posts
+    // 3. Render all posts (newest first, using createdAt as reliable fallback)
     [...postsDB].sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
         const timeA = isNaN(dateA) ? 0 : dateA;
         const timeB = isNaN(dateB) ? 0 : dateB;
         return timeB - timeA;
