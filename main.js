@@ -197,15 +197,6 @@ if (cancelEditBtn) {
 }
 
 function switchView(targetId) {
-    // ===== TEMPORARY JUMPSCARE - triggers when opening Information tab =====
-    if (targetId === 'view-information') {
-        triggerJumpscare(() => {
-            // After jumpscare finishes, actually switch to the view
-            _doSwitchView(targetId);
-        });
-        return;
-    }
-    // ===== END TEMPORARY JUMPSCARE =====
     _doSwitchView(targetId);
 }
 
@@ -237,34 +228,39 @@ function _doSwitchView(targetId) {
 }
 
 // Trello / Information Board Filter logic
+let filterTimeout;
 window.filterWiki = function (query) {
-    const boardCards = document.querySelectorAll('.trello-card');
+    if (filterTimeout) clearTimeout(filterTimeout);
 
-    boardCards.forEach(card => {
-        if (!query || query.trim() === '') {
-            card.style.display = 'block';
-        } else {
-            const titleEl = card.querySelector('.trello-card-title');
-            const titleText = titleEl ? titleEl.innerText.toLowerCase() : '';
-            if (titleText.includes(query.toLowerCase())) {
+    filterTimeout = setTimeout(() => {
+        const boardCards = document.querySelectorAll('.trello-card');
+
+        boardCards.forEach(card => {
+            if (!query || query.trim() === '') {
                 card.style.display = 'block';
             } else {
-                card.style.display = 'none';
+                const titleEl = card.querySelector('.trello-card-title');
+                const titleText = titleEl ? titleEl.innerText.toLowerCase() : '';
+                if (titleText.includes(query.toLowerCase())) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
             }
-        }
-    });
+        });
 
-    // Hide entire columns if all cards inside them are hidden by the search
-    const columns = document.querySelectorAll('.board-column');
-    columns.forEach(col => {
-        const visibleCards = Array.from(col.querySelectorAll('.trello-card'))
-            .filter(c => c.style.display !== 'none');
-        if (visibleCards.length === 0 && query.trim() !== '') {
-            col.style.display = 'none';
-        } else {
-            col.style.display = 'flex';
-        }
-    });
+        // Hide entire columns if all cards inside them are hidden by the search
+        const columns = document.querySelectorAll('.board-column');
+        columns.forEach(col => {
+            const visibleCards = Array.from(col.querySelectorAll('.trello-card'))
+                .filter(c => c.style.display !== 'none');
+            if (visibleCards.length === 0 && query.trim() !== '') {
+                col.style.display = 'none';
+            } else {
+                col.style.display = 'flex';
+            }
+        });
+    }, 150); // 150ms debounce
 }
 
 navLinks.forEach(link => {
@@ -758,6 +754,11 @@ function renderFeeds() {
             infoContainer.insertAdjacentHTML('beforeend', columnHtml);
         });
     }
+
+    // Refresh the countdown cache after rendering
+    if (typeof updateTickingCardsCache === 'function') {
+        updateTickingCardsCache();
+    }
 }
 
 // --- Dev Portal Authentication ---
@@ -1116,20 +1117,35 @@ document.querySelectorAll('.toolbar-btn').forEach(btn => {
 });
 
 // --- Live Ticking Countdowns ---
+// Cache the event cards that specifically have an end time so we don't query the whole document every second
+let tickingEventCards = [];
+function updateTickingCardsCache() {
+    tickingEventCards = Array.from(document.querySelectorAll('.event-card[data-endtime]'));
+}
+
+// Call this once initially and whenever feeds are re-rendered
+updateTickingCardsCache();
+
 setInterval(() => {
-    document.querySelectorAll('.event-card[data-endtime]').forEach(card => {
+    if (tickingEventCards.length === 0) return;
+
+    const now = new Date();
+
+    tickingEventCards.forEach((card, index) => {
         const endTimeStr = card.getAttribute('data-endtime');
         if (!endTimeStr) return;
 
         const endD = new Date(endTimeStr);
         if (isNaN(endD.getTime())) return;
 
-        const now = new Date();
         const timeSpan = card.querySelector('.event-meta .mono');
 
         if (now > endD) {
             // It just expired live! Let's update the card to look ended
             card.removeAttribute('data-endtime'); // Stop ticking
+
+            // Remove from cached array since it's done ticking
+            tickingEventCards.splice(index, 1);
 
             const badgeSpan = card.querySelector('.card-content .badge');
             if (badgeSpan) {
@@ -1172,16 +1188,30 @@ setInterval(() => {
                 timeDisplay = `Ends in ${diffSecs}s`;
             }
 
-            if (timeSpan) {
-                timeSpan.textContent = timeDisplay;
+            if (timeSpan && timeSpan.textContent !== timeDisplay) {
+                timeSpan.textContent = timeDisplay; // Only update DOM if text actually changed
             }
         }
     });
 }, 1000);
 
 // --- Live Image Carousel Auto-Rotation ---
+let carouselElements = [];
+function updateCarouselCache() {
+    carouselElements = Array.from(document.querySelectorAll('.image-carousel'));
+}
+// Hook this cache refresh at the end of renderFeeds as well
+const originalUpdateTickingCardsCache = updateTickingCardsCache;
+updateTickingCardsCache = () => {
+    if (typeof originalUpdateTickingCardsCache === 'function') originalUpdateTickingCardsCache();
+    updateCarouselCache();
+};
+updateCarouselCache();
+
 setInterval(() => {
-    document.querySelectorAll('.image-carousel').forEach(carousel => {
+    if (carouselElements.length === 0) return;
+
+    carouselElements.forEach(carousel => {
         const rawImages = carousel.getAttribute('data-images');
         if (!rawImages) return;
 
@@ -1213,9 +1243,12 @@ setInterval(() => {
             topImg.style.opacity = '1';
 
             // Re-enable transition for the NEXT cycle
-            setTimeout(() => {
-                topImg.style.transition = 'opacity 0.5s ease-in-out';
-            }, 50);
+            // Use requestAnimationFrame for smoother paint cycle resumption
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    topImg.style.transition = 'opacity 0.5s ease-in-out';
+                });
+            });
 
             // Update tracking index
             carousel.setAttribute('data-current', nextIndex);
@@ -1257,102 +1290,5 @@ setInterval(() => {
     }, 1500); // Must match CSS transition duration
 }, 8000); // Rotate every 8 seconds
 
-// ===== TEMPORARY JUMPSCARE SYSTEM - DELETE THIS ENTIRE BLOCK TO REMOVE =====
-let jumpscareTriggered = false;
-
-function playScreamSFX() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const duration = 2.0;
-
-        // Create a horrifying layered scream
-        // Layer 1: Distorted scream base
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(800, ctx.currentTime);
-        osc1.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + duration);
-        gain1.gain.setValueAtTime(0.6, ctx.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start();
-        osc1.stop(ctx.currentTime + duration);
-
-        // Layer 2: High-pitched shriek
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = 'square';
-        osc2.frequency.setValueAtTime(3000, ctx.currentTime);
-        osc2.frequency.linearRampToValueAtTime(1500, ctx.currentTime + 0.3);
-        osc2.frequency.linearRampToValueAtTime(4000, ctx.currentTime + 0.5);
-        osc2.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + duration);
-        gain2.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start();
-        osc2.stop(ctx.currentTime + duration);
-
-        // Layer 3: Noise burst (white noise through buffer)
-        const bufferSize = ctx.sampleRate * duration;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = (Math.random() * 2 - 1) * 0.5;
-        }
-        const noiseSource = ctx.createBufferSource();
-        const noiseGain = ctx.createGain();
-        noiseSource.buffer = noiseBuffer;
-        noiseGain.gain.setValueAtTime(0.4, ctx.currentTime);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-        noiseSource.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        noiseSource.start();
-        noiseSource.stop(ctx.currentTime + duration);
-
-        // Layer 4: Sub-bass rumble for dread
-        const osc3 = ctx.createOscillator();
-        const gain3 = ctx.createGain();
-        osc3.type = 'sine';
-        osc3.frequency.setValueAtTime(60, ctx.currentTime);
-        osc3.frequency.linearRampToValueAtTime(30, ctx.currentTime + duration);
-        gain3.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-        osc3.connect(gain3);
-        gain3.connect(ctx.destination);
-        osc3.start();
-        osc3.stop(ctx.currentTime + duration);
-
-    } catch (e) {
-        console.log('Audio context not available for jumpscare SFX');
-    }
-}
-
-function triggerJumpscare(callback) {
-    // Only trigger once per session to keep the surprise
-    if (jumpscareTriggered) {
-        if (callback) callback();
-        return;
-    }
-    jumpscareTriggered = true;
-
-    const overlay = document.getElementById('jumpscare-overlay');
-    if (!overlay) {
-        if (callback) callback();
-        return;
-    }
-
-    // Show the jumpscare
-    overlay.style.display = 'flex';
-
-    // Play the scream
-    playScreamSFX();
-
-    // Auto-dismiss after 2 seconds
-    setTimeout(() => {
-        overlay.style.display = 'none';
-        if (callback) callback();
-    }, 2000);
-}
+// ===== INITIALIZATION & CLEANUP DONE =====
 // ===== END TEMPORARY JUMPSCARE SYSTEM =====

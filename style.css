@@ -29,11 +29,11 @@ body {
 }
 
 #bg-slideshow {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   z-index: -1;
   overflow: hidden;
 }
@@ -46,10 +46,12 @@ body {
   height: 100%;
   background-size: cover;
   background-position: center;
-  background-repeat: repeat-y;
+  background-repeat: no-repeat;
   opacity: 0.3;
-  filter: blur(2px);
-  image-rendering: auto;
+  /* Removed heavy blur filter for better performance */
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  /* Hardware acceleration */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   transition: opacity 1.5s ease-in-out;
