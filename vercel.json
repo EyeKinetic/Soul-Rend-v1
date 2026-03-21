@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/BobTheBuilder", "destination": "/BobTheBuilder.html" }
+  ],
+  "cleanUrls": true
+}
