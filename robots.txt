@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /BobTheBuilder.html
+Disallow: /BobTheBuilder
+
+Sitemap: https://soul-rend-v1.vercel.app/sitemap.xml
