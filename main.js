@@ -52,30 +52,32 @@ injectSpeedInsights();
     }
     draw();
 
-    const loadingAudio = new Audio('/bg_new.webm');
-    loadingAudio.loop = true;
-    loadingAudio.volume = 0.4;
+    const loadingAudio = document.getElementById('bg-audio');
+    if (loadingAudio) {
+        loadingAudio.loop = true;
+        loadingAudio.volume = 0.4;
 
-    const playPromise = loadingAudio.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {
-            screen.addEventListener('click', () => {
-                loadingAudio.play().catch(() => {});
-            }, { once: true });
-        });
+        const playPromise = loadingAudio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(() => {
+                screen.addEventListener('click', () => {
+                    loadingAudio.play().catch(() => {});
+                }, { once: true });
+            });
+        }
     }
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         screen.classList.add('hidden');
         
-        const fadeOut = setInterval(() => {
-            if (loadingAudio.volume > 0.05) {
+        const fadeToNormal = setInterval(() => {
+            if (loadingAudio && loadingAudio.volume > 0.15) {
                 loadingAudio.volume -= 0.05;
             } else {
-                clearInterval(fadeOut);
-                loadingAudio.pause();
-                loadingAudio.currentTime = 0;
+                clearInterval(fadeToNormal);
+                if (loadingAudio) loadingAudio.volume = 0.1;
+                window.dispatchEvent(new Event('musicStarted'));
             }
         }, 50);
 
@@ -425,33 +427,13 @@ if (communityBtn && communityDropdown) {
 
 const bgAudio = document.getElementById('bg-audio');
 const musicToggleBtn = document.getElementById('music-toggle-btn');
-const tracks = ['/bg_new.webm'];
-let isMusicPlaying = false;
+let isMusicPlaying = bgAudio ? !bgAudio.paused : false;
 
-let currentTrackIndex = Math.floor(Math.random() * tracks.length);
-if (bgAudio) {
-    bgAudio.src = tracks[currentTrackIndex];
-    bgAudio.volume = 0.1;
-}
-
-const playNextTrack = () => {
-    let nextIndex;
-    if (tracks.length > 1) {
-        do {
-            nextIndex = Math.floor(Math.random() * tracks.length);
-        } while (nextIndex === currentTrackIndex);
-    } else {
-        nextIndex = 0;
+window.addEventListener('musicStarted', () => {
+    if (typeof updateAudioUI === 'function') {
+        updateAudioUI(true);
     }
-
-    currentTrackIndex = nextIndex;
-    bgAudio.src = tracks[currentTrackIndex];
-    bgAudio.play().catch(e => console.log("Audio play prevented:", e));
-};
-
-if (bgAudio) {
-    bgAudio.addEventListener('ended', playNextTrack);
-}
+});
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
