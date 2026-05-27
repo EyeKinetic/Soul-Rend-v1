@@ -3,8 +3,8 @@ import { Client, Databases, Account, Storage, ID, Query } from 'appwrite';
 const client = new Client();
 
 client
-    .setEndpoint('https://fra.cloud.appwrite.io/v1')
-    .setProject('69a594120012d4480ace');
+    .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
+    .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
 
 export const databases = new Databases(client);
 export const account = new Account(client);
@@ -12,12 +12,12 @@ export const storage = new Storage(client);
 export { ID, Query };
 
 export const APPWRITE_CONFIG = {
-    databaseId: '69a5af9d000032e51e23',
-    bucketId: '69a80c1b003bf0c1bf89',
+    databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
+    bucketId: import.meta.env.VITE_APPWRITE_BUCKET_ID,
     collections: {
-        announcements: '69a5b156000e20ec4506',
-        events: '69a5b159002c9dd2fd46',
-        'patch-notes': '69a5b15800028b23abf4', // Used mapping patchNotes -> patch-notes
-        information: '69a5b15400132d5ca4b8' // WikiLore
+        announcements: import.meta.env.VITE_COLLECTION_ANNOUNCEMENTS,
+        events: import.meta.env.VITE_COLLECTION_EVENTS,
+        'patch-notes': import.meta.env.VITE_COLLECTION_PATCH_NOTES,
+        information: import.meta.env.VITE_COLLECTION_INFORMATION
     }
 };

@@ -2,16 +2,65 @@ import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import './style.css';
 import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/appwrite.js';
+import DOMPurify from 'dompurify';
 
-// Initialize Vercel Analytics tracking
+const sanitize = (str) => DOMPurify.sanitize(str ?? '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+
 inject();
 injectSpeedInsights();
 
-// Initialize Vercel Analytics tracking
-inject();
-injectSpeedInsights();
+(function initLoadingScreen() {
+    const screen = document.getElementById('loading-screen');
+    const btn = document.getElementById('loading-enter-btn');
+    const canvas = document.getElementById('loading-canvas');
+    if (!screen || !btn || !canvas) return;
 
-// --- Background Reishi Canvas Animation ---
+    const ctx = canvas.getContext('2d');
+    let w, h;
+
+    function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const dots = Array.from({ length: 80 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.5 + 0.3,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -(Math.random() * 0.6 + 0.2),
+        a: Math.random() * 0.4 + 0.1,
+    }));
+
+    let rafId;
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+        dots.forEach(d => {
+            d.x += d.vx + Math.sin(d.y * 0.015) * 0.3;
+            d.y += d.vy;
+            if (d.y < -5) { d.y = h + 5; d.x = Math.random() * w; }
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(13,215,242,${d.a})`;
+            ctx.shadowBlur = d.r * 3;
+            ctx.shadowColor = '#0dd7f2';
+            ctx.fill();
+        });
+        rafId = requestAnimationFrame(draw);
+    }
+    draw();
+
+    btn.addEventListener('click', () => {
+        screen.classList.add('hidden');
+        screen.addEventListener('transitionend', () => {
+            screen.remove();
+            cancelAnimationFrame(rafId);
+        }, { once: true });
+    });
+})();
+
 function initBackgroundAnimation() {
     const canvas = document.getElementById('bg-canvas');
     if (!canvas) return;
@@ -27,7 +76,6 @@ function initBackgroundAnimation() {
     window.addEventListener('resize', resize);
     resize();
 
-    // Particle class for Bleach-themed "Reishi" (spirit energy)
     class Reishi {
         constructor() {
             this.reset();
@@ -35,13 +83,11 @@ function initBackgroundAnimation() {
 
         reset() {
             this.x = Math.random() * width;
-            this.y = Math.random() * height + height; // Start slightly below screen
+            this.y = Math.random() * height + height;
             this.size = Math.random() * 2 + 0.5;
-            this.speedY = -(Math.random() * 1.5 + 0.5); // Float upwards
-            this.speedX = (Math.random() - 0.5) * 0.5; // Slight horizontal drift
-            // Create a soul/cyan glow color
+            this.speedY = -(Math.random() * 1.5 + 0.5);
+            this.speedX = (Math.random() - 0.5) * 0.5;
             this.alpha = Math.random() * 0.5 + 0.1;
-            // Reishi are typically cyan/blue tinted in Bleach
             this.color = `rgba(13, 215, 242, ${this.alpha})`;
         }
 
@@ -49,13 +95,11 @@ function initBackgroundAnimation() {
             this.y += this.speedY;
             this.x += this.speedX;
 
-            // Add a slight shimmer/sway effect
             this.x += Math.sin(this.y * 0.02) * 0.5;
 
-            // Reset particle logic when it goes off screen (top or sides)
             if (this.y < -10 || this.x < -10 || this.x > width + 10) {
                 this.reset();
-                this.y = height + 10; // Start at bottom again
+                this.y = height + 10;
             }
         }
 
@@ -67,7 +111,6 @@ function initBackgroundAnimation() {
             ctx.shadowColor = 'rgba(13, 215, 242, 0.8)';
             ctx.fill();
 
-            // Core bright center for larger particles
             if (this.size > 1.5) {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
@@ -78,10 +121,8 @@ function initBackgroundAnimation() {
     }
 
     const particles = [];
-    // Depending on performance, adjust particle count. 100 for a subtle effect
     for (let i = 0; i < 150; i++) {
         particles.push(new Reishi());
-        // Scatter initial Y positions so they don't all spawn at the bottom at once
         particles[i].y = Math.random() * height;
     }
 
@@ -99,7 +140,6 @@ function initBackgroundAnimation() {
     animate();
 }
 
-// Call on load
 document.addEventListener('DOMContentLoaded', initBackgroundAnimation);
 
 let postsDB = [];
@@ -110,7 +150,6 @@ async function loadFromAppwrite() {
         const categories = Object.keys(APPWRITE_CONFIG.collections);
         let allPosts = [];
 
-        // Fetch from all collections concurrently
         const promises = categories.map(async (category) => {
             const collectionId = APPWRITE_CONFIG.collections[category];
             const response = await databases.listDocuments(
@@ -122,14 +161,13 @@ async function loadFromAppwrite() {
                 ]
             );
 
-            // Map Appwrite documents to our frontend structure
             const docs = response.documents.map(doc => {
                 let mappedDoc = {
                     id: doc.$id,
                     category: category,
                     img: doc.image || doc.img || "",
                     badgeClass: "dev",
-                    createdAt: doc.$createdAt || "" // Always store for reliable sorting
+                    createdAt: doc.$createdAt || ""
                 };
 
                 if (category === 'announcements') {
@@ -141,7 +179,7 @@ async function loadFromAppwrite() {
                     mappedDoc.title = doc.event_name || "Untitled";
                     mappedDoc.content = doc.description || "";
                     mappedDoc.date = doc.start_time || doc.$createdAt || "Unknown";
-                    mappedDoc.end_time = doc.end_time || null; // Captured from DB for expiration logic
+                    mappedDoc.end_time = doc.end_time || null;
                     mappedDoc.badge = "EVENT";
                     mappedDoc.badgeClass = "event";
                 } else if (category === 'patch-notes') {
@@ -176,14 +214,11 @@ async function loadFromAppwrite() {
     }
 }
 
-// Initial Load
 loadFromAppwrite();
 
-// --- Navigation Logic ---
 const navLinks = document.querySelectorAll('.nav-center .nav-link');
 const sections = document.querySelectorAll('.view-section');
 
-// Attach delete to window so inline onclick can see it
 window.deletePost = async function (id) {
     if (confirm("Are you sure you want to delete this post?")) {
         const postElement = document.getElementById(`post-${id}`);
@@ -226,21 +261,18 @@ window.deletePost = async function (id) {
     }
 }
 
-// Helpers for entering/exiting edit mode
 const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 
 window.editPost = function (id) {
     const post = postsDB.find(p => p.id === id);
     if (!post) return;
 
-    // Switch view to dev portal to see the form
     switchView('view-dev-portal');
     window.scrollTo(0, 0);
 
-    // Populate form fields
     document.getElementById('cms-title').value = post.title;
     document.getElementById('cms-category').value = post.category;
-    document.getElementById('cms-category').dispatchEvent(new Event('change')); // trigger toggle
+    document.getElementById('cms-category').dispatchEvent(new Event('change'));
     document.getElementById('cms-body').value = post.content;
     document.getElementById('cms-img').value = post.img || '';
     document.getElementById('cms-badge').value = post.badge;
@@ -261,7 +293,6 @@ window.editPost = function (id) {
         document.getElementById('cms-board-column').value = post.boardColumn;
     }
 
-    // Set UI state
     editingPostId = id;
     document.getElementById('publish-btn').textContent = 'Update Post';
     const cancelBtn = document.getElementById('cancel-edit-btn');
@@ -299,11 +330,9 @@ function _doSwitchView(targetId) {
     navLinks.forEach(l => l.classList.remove('active'));
     mobileNavLinks.forEach(l => l.classList.remove('active'));
 
-    // Update desktop nav
     const targetLink = document.querySelector(`.nav-center .nav-link[data-target="${targetId}"]`);
     if (targetLink) targetLink.classList.add('active');
 
-    // Update mobile nav
     const mobileTargetLink = document.querySelector(`.mobile-nav-link[data-target="${targetId}"]`);
     if (mobileTargetLink) mobileTargetLink.classList.add('active');
 
@@ -318,11 +347,9 @@ function _doSwitchView(targetId) {
         targetSection.style.display = 'block';
     }
 
-    // Re-render feed when a view switches
     renderFeeds();
 }
 
-// Trello / Information Board Filter logic
 let filterTimeout;
 
 function filterWiki(query) {
@@ -339,7 +366,6 @@ function filterWiki(query) {
         boardCards.forEach(card => {
             let showCard = true;
 
-            // Text check (Multi-word substring match against title, excerpt, badge, and column name)
             if (searchWords.length > 0) {
                 const titleEl = card.querySelector('.trello-card-title');
                 const excerptEl = card.querySelector('.trello-card-excerpt');
@@ -354,7 +380,6 @@ function filterWiki(query) {
                     colHeader ? colHeader.innerText : ''
                 ].join(' ').toLowerCase();
 
-                // Ensure EVERY word typed is found somewhere in the searchable text
                 const matchesAllWords = searchWords.every(word => searchableText.includes(word));
                 if (!matchesAllWords) {
                     showCard = false;
@@ -364,7 +389,6 @@ function filterWiki(query) {
             card.style.display = showCard ? 'flex' : 'none';
         });
 
-        // Hide columns that have absolutely no visible cards
         const columns = document.querySelectorAll('.board-column');
         columns.forEach(col => {
             const visibleCards = Array.from(col.querySelectorAll('.trello-card'))
@@ -375,10 +399,9 @@ function filterWiki(query) {
                 col.style.display = 'flex';
             }
         });
-    }, 150); // 150ms debounce
+    }, 150);
 }
 
-// Wire up search input via JS (not inline oninput, which can't see module-scoped functions)
 const infoSearchInput = document.getElementById('info-search');
 if (infoSearchInput) {
     infoSearchInput.addEventListener('input', (e) => filterWiki(e.target.value));
@@ -400,7 +423,6 @@ mobileNavLinks.forEach(link => {
 const devPortal = document.getElementById('view-dev-portal');
 if (devPortal) devPortal.style.display = 'none';
 
-// --- Post Viewer Modal Logic ---
 const postViewerModal = document.getElementById('post-viewer-modal');
 const viewerClose = document.getElementById('viewer-close');
 const viewerImg = document.getElementById('viewer-img');
@@ -415,24 +437,20 @@ if (viewerClose) {
     });
 }
 
-// Window click outside modal to close
 window.addEventListener('click', (e) => {
     if (e.target === postViewerModal) {
         postViewerModal.classList.remove('active');
     }
-    // Also handle dev auth modal
     const authModal = document.getElementById('auth-modal');
     if (e.target === authModal) {
         authModal.classList.remove('active');
     }
 
-    // Close mobile dropdown if clicking anywhere else
     const mobileDropdown = document.getElementById('mobile-dropdown');
     if (mobileDropdown && e.target.id !== 'mobile-menu-btn' && !e.target.closest('#mobile-menu-btn')) {
         mobileDropdown.classList.remove('active');
     }
 
-    // Close footer dropdown if clicking anywhere else
     const contactDropdown = document.getElementById('contact-dropdown');
     if (contactDropdown && e.target.id !== 'contact-team-btn') {
         contactDropdown.classList.remove('active');
@@ -444,21 +462,18 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// --- Contact Team Dropdown Logic ---
 const contactTeamBtn = document.getElementById('contact-team-btn');
 const contactDropdown = document.getElementById('contact-dropdown');
 
 if (contactTeamBtn && contactDropdown) {
     contactTeamBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // prevent window click
+        e.stopPropagation();
         contactDropdown.classList.toggle('active');
-        // Close community dropdown if it's open
         const communityDropdown = document.getElementById('community-dropdown');
         if (communityDropdown) communityDropdown.classList.remove('active');
     });
 }
 
-// --- Mobile Menu Dropdown Logic ---
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileDropdown = document.getElementById('mobile-dropdown');
 
@@ -467,40 +482,34 @@ if (mobileMenuBtn && mobileDropdown) {
         e.stopPropagation();
         mobileDropdown.classList.toggle('active');
         if (contactDropdown) contactDropdown.classList.remove('active');
-        // Close community dropdown if it's open
         const communityDropdown = document.getElementById('community-dropdown');
         if (communityDropdown) communityDropdown.classList.remove('active');
     });
 }
 
-// --- Community Dropdown Logic ---
 const communityBtn = document.getElementById('community-btn');
 const communityDropdown = document.getElementById('community-dropdown');
 
 if (communityBtn && communityDropdown) {
     communityBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // prevent window click
+        e.stopPropagation();
         communityDropdown.classList.toggle('active');
-        // Close contact dropdown if it's open
         if (contactDropdown) contactDropdown.classList.remove('active');
     });
 }
 
-// --- Background Audio Logic ---
 const bgAudio = document.getElementById('bg-audio');
 const musicToggleBtn = document.getElementById('music-toggle-btn');
 const tracks = ['/bg1.mp3', '/bg2.mp3'];
 let isMusicPlaying = false;
 
-// Pick a random track to start
 let currentTrackIndex = Math.floor(Math.random() * tracks.length);
 if (bgAudio) {
     bgAudio.src = tracks[currentTrackIndex];
-    bgAudio.volume = 0.1; // Adjust volume as needed
+    bgAudio.volume = 0.1;
 }
 
 const playNextTrack = () => {
-    // Pick a random track that isn't the current one (if there are multiple)
     let nextIndex;
     if (tracks.length > 1) {
         do {
@@ -519,7 +528,6 @@ if (bgAudio) {
     bgAudio.addEventListener('ended', playNextTrack);
 }
 
-// Pause audio if the user leaves the tab or minimizes the browser on mobile
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
         if (isMusicPlaying && bgAudio) {
@@ -547,7 +555,7 @@ const updateAudioUI = (playing) => {
 
 if (musicToggleBtn && bgAudio) {
     musicToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent document click from firing immediately
+        e.stopPropagation();
         if (isMusicPlaying) {
             bgAudio.pause();
             updateAudioUI(false);
@@ -558,9 +566,8 @@ if (musicToggleBtn && bgAudio) {
     });
 }
 
-// Auto-play on first general interaction
 const playAudioOnFirstClick = (e) => {
-    if (e.target.id === 'music-toggle-btn') return; // Handled by button logic
+    if (e.target.id === 'music-toggle-btn') return;
     if (!isMusicPlaying && bgAudio) {
         bgAudio.play().then(() => {
             updateAudioUI(true);
@@ -571,7 +578,6 @@ const playAudioOnFirstClick = (e) => {
 document.addEventListener('click', playAudioOnFirstClick);
 
 window.openPostViewer = function (e, postId) {
-    // Only open if not clicking delete or edit buttons
     if (e && e.target && (e.target.classList.contains('delete-btn') || e.target.classList.contains('edit-btn'))) return;
 
     const post = postsDB.find(p => p.id === postId);
@@ -595,7 +601,6 @@ window.openPostViewer = function (e, postId) {
     viewerBadge.textContent = post.badge;
     viewerBadge.className = `badge ${post.badgeClass || 'dev'}`;
 
-    // Trello cards use specific badge text coloring natively
     if (post.category === 'information') {
         const colColors = {
             "Red": "#E50914",
@@ -635,7 +640,6 @@ window.openPostViewer = function (e, postId) {
     postViewerModal.classList.add('active');
 };
 
-// --- Feed Rendering Engine ---
 function createPostHtml(post) {
     function formatDate(dateStr) {
         if (!dateStr || dateStr === "Ongoing" || dateStr === "Unknown" || dateStr === "Just Now") return dateStr;
@@ -656,11 +660,8 @@ function createPostHtml(post) {
     if (post.img) {
         const imgArray = post.img.split(',');
         if (imgArray.length === 1) {
-            // Single Image Logic
             imgHtml = `<img src="${imgArray[0]}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
         } else if (imgArray.length > 1) {
-            // Multi-Image Carousel Logic
-            // The top image sits at z-index 2 and crossfades. The bottom image sits at z-index 1.
             imgHtml = `
             <div class="image-carousel" data-images="${post.img}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
                 <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
@@ -670,12 +671,9 @@ function createPostHtml(post) {
         }
     }
 
-    let paddingStyle = post.img ? 'padding: 20px;' : '';
-
-    // Special style for events to mimic the large card look
     if (post.category === 'events' && post.img) {
         let isExpired = false;
-        let timeDisplay = displayDate; // fallback
+        let timeDisplay = displayDate;
 
         if (post.end_time) {
             const endD = new Date(post.end_time);
@@ -710,7 +708,6 @@ function createPostHtml(post) {
             : `<a href="https://discord.gg/EwgsJSPAyy" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">Join Now</button></a>`;
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
-        // Construct absolute position background layers so carousels can run underneath event content
         let eventBgHtml = '';
         if (post.img) {
             const imgArray = post.img.split(',').map(s => s.trim());
@@ -736,17 +733,20 @@ function createPostHtml(post) {
              `;
         }
 
+        const safeTimeSty = timeSty.replace(/[<>"'`]/g, '');
+        const safeBadgeSty = badgeSty.replace(/[<>"'`]/g, '');
+        const safeBadgeTxt = sanitize(badgeTxt);
         return `
       <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, '${post.id}')">
         ${eventBgHtml}
         <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
         <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')" style="z-index: 10;">Edit Post</button>
         <div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">
-          <span class="badge ${post.badgeClass}" style="${badgeSty}">${badgeTxt}</span>
-          <h3 class="card-title" style="margin-top:16px">${post.title}</h3>
-          <p class="card-excerpt" style="margin-top:8px">${post.content}</p>
+          <span class="badge ${post.badgeClass}" style="${safeBadgeSty}">${safeBadgeTxt}</span>
+          <h3 class="card-title" style="margin-top:16px">${safeTitle}</h3>
+          <p class="card-excerpt" style="margin-top:8px">${safeContent}</p>
           <div class="event-meta" style="margin-top:24px">
-            <span class="mono" style="${timeSty}">${timeDisplay}</span >
+            <span class="mono" style="${safeTimeSty}">${timeDisplay}</span >
             ${btnHtml}
           </div>
         </div>
@@ -761,15 +761,37 @@ function createPostHtml(post) {
       ${imgHtml}
       <div style="padding: 20px; pointer-events: none;">
         <div class="news-header">
-          <span class="badge ${post.badgeClass}">${post.badge}</span>
+          <span class="badge ${post.badgeClass}">${safeBadge}</span>
           <span class="news-meta mono">${displayDate}</span>
         </div>
-        <h4 class="news-title">${post.title}</h4>
-        <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${post.content}</p>
+        <h4 class="news-title">${safeTitle}</h4>
+        <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${safeContent}</p>
         <button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>
       </div>
     </div>
   `;
+}
+
+let currentActiveCategory = 'All';
+
+function filterWikiCategory(col) {
+    currentActiveCategory = col;
+    const columns = document.querySelectorAll('.board-column');
+    columns.forEach(column => {
+        if (col === 'All') {
+            column.style.display = 'flex';
+        } else {
+            const header = column.querySelector('.board-column-header');
+            const colName = header ? header.textContent.trim() : '';
+            column.style.display = colName.toLowerCase() === col.toLowerCase() ? 'flex' : 'none';
+        }
+    });
+    const catBtns = document.querySelectorAll('.info-category-btn');
+    catBtns.forEach(btn => {
+        const isActive = btn.dataset.category === col;
+        btn.style.borderColor = isActive ? 'var(--secondary-accent)' : 'rgba(255,255,255,0.2)';
+        btn.style.background = isActive ? 'rgba(13, 215, 242, 0.2)' : 'transparent';
+    });
 }
 
 function renderFeeds() {
@@ -779,7 +801,6 @@ function renderFeeds() {
         'announcements': document.getElementById('announcements-feed-container')
     };
 
-    // 1. Clear existing standard feeds
     Object.values(containers).forEach(container => {
         if (container) {
             const header = container.querySelector('.section-header');
@@ -788,14 +809,11 @@ function renderFeeds() {
         }
     });
 
-    // 2. Clear Information Board container
     const infoContainer = document.getElementById('information-board-container');
     if (infoContainer) infoContainer.innerHTML = '';
 
-    // Group Information posts by their defined "boardColumn" or default to "General"
     const boardGroups = {};
 
-    // 3. Render all posts (newest first, using createdAt as reliable fallback)
     [...postsDB].sort((a, b) => {
         const dateA = new Date(a.createdAt || a.date).getTime();
         const dateB = new Date(b.createdAt || b.date).getTime();
@@ -803,14 +821,12 @@ function renderFeeds() {
         const timeB = isNaN(dateB) ? 0 : dateB;
         return timeB - timeA;
     }).forEach(post => {
-        // Standard feeds
         if (post.category !== 'information') {
             const container = containers[post.category];
             if (container) {
                 container.insertAdjacentHTML('beforeend', createPostHtml(post));
             }
         }
-        // Information Board (Trello Style rendering)
         else {
             const column = post.boardColumn || "General";
             if (!boardGroups[column]) boardGroups[column] = [];
@@ -818,9 +834,7 @@ function renderFeeds() {
         }
     });
 
-    // 4. Render Board Columns
     if (infoContainer) {
-        // Defined column colors mapping roughly to the reference UI
         const colColors = {
             "Red": "#E50914",
             "Purple": "#8e44ad",
@@ -875,12 +889,10 @@ function renderFeeds() {
             infoContainer.insertAdjacentHTML('beforeend', columnHtml);
         });
 
-        // 5. Render Category Navbar for the Information Board
         const catContainer = document.getElementById('info-categories');
         if (catContainer) {
             catContainer.innerHTML = '';
 
-            // Generate distinct column names array
             const cols = ['All', ...Object.keys(boardGroups)];
 
             cols.forEach(col => {
@@ -901,13 +913,11 @@ function renderFeeds() {
         }
     }
 
-    // Refresh the countdown cache after rendering
     if (typeof updateTickingCardsCache === 'function') {
         updateTickingCardsCache();
     }
 }
 
-// --- Dev Portal Authentication ---
 
 const authModal = document.getElementById('auth-modal');
 const openDevAuthBtn = document.getElementById('open-dev-auth');
@@ -918,9 +928,8 @@ const passwordInput = document.getElementById('dev-password');
 const authError = document.getElementById('auth-error');
 const logoutBtn = document.getElementById('logout-dev-btn');
 
-// --- Auto Logout Logic ---
 let inactivityTimer;
-const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes auto-logout
+const INACTIVITY_LIMIT = 5 * 60 * 1000;
 
 function resetInactivityTimer() {
     clearTimeout(inactivityTimer);
@@ -938,62 +947,74 @@ function resetInactivityTimer() {
     }
 }
 
-// Reset timer on user interaction
 window.addEventListener('mousemove', resetInactivityTimer);
 window.addEventListener('keypress', resetInactivityTimer);
 window.addEventListener('click', resetInactivityTimer);
 window.addEventListener('scroll', resetInactivityTimer);
 
-// Always require fresh login on dev portal load
 async function checkSession() {
     try {
-        // Destroy any existing session so dev always requires fresh credentials
         await account.deleteSession('current');
     } catch (e) {
-        // No session to delete, that's fine
     }
 
-    // Force auth modal
     document.body.classList.remove('dev-mode');
     authModal.classList.add('active');
     if (emailInput) emailInput.value = '';
     if (passwordInput) passwordInput.value = '';
     if (authError) authError.style.display = 'none';
 
-    // Hide CMS elements to prevent peeking
     const devPortal = document.getElementById('view-dev-portal');
     if (devPortal) devPortal.style.display = 'none';
 }
 checkSession();
 
-// The user must authenticate; no "Cancel" or "Open btn" allowed in dev portal
 if (cancelAuthBtn) {
     cancelAuthBtn.addEventListener('click', () => {
-        // If they cancel, redirect back to home page
         window.location.href = '/index.html';
     });
 }
 
+let loginAttempts = 0;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 60 * 1000;
+let lockoutUntil = 0;
+
 async function authenticate() {
+    const now = Date.now();
+    if (now < lockoutUntil) {
+        const secsLeft = Math.ceil((lockoutUntil - now) / 1000);
+        authError.textContent = `Too many failed attempts. Try again in ${secsLeft}s.`;
+        authError.style.display = 'block';
+        return;
+    }
+
     submitAuthBtn.textContent = 'Logging in...';
     submitAuthBtn.disabled = true;
     authError.style.display = 'none';
 
     try {
-        // Appwrite Login
         await account.createEmailPasswordSession(
             emailInput.value,
             passwordInput.value
         );
 
+        loginAttempts = 0;
         authModal.classList.remove('active');
         document.body.classList.add('dev-mode');
         resetInactivityTimer();
         switchView('view-dev-portal');
 
     } catch (error) {
-        console.error("Login failed:", error);
-        authError.textContent = error.message || "Invalid credentials.";
+        loginAttempts++;
+        if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+            lockoutUntil = Date.now() + LOCKOUT_DURATION;
+            loginAttempts = 0;
+            authError.textContent = `Too many failed attempts. Locked out for 60 seconds.`;
+        } else {
+            const remaining = MAX_LOGIN_ATTEMPTS - loginAttempts;
+            authError.textContent = `${error.message || 'Invalid credentials.'} (${remaining} attempt${remaining !== 1 ? 's' : ''} left)`;
+        }
         authError.style.display = 'block';
         passwordInput.value = '';
         if (emailInput) emailInput.focus();
@@ -1023,7 +1044,6 @@ if (logoutBtn) {
 }
 
 
-// --- CMS Publishing Logic ---
 const publishBtn = document.getElementById('publish-btn');
 const inputTitle = document.getElementById('cms-title');
 const inputCategory = document.getElementById('cms-category');
@@ -1038,7 +1058,6 @@ const inputImgFile = document.getElementById('cms-img-file');
 const inputBody = document.getElementById('cms-body');
 const toastNode = document.getElementById('toast');
 
-// Handle local image file uploads
 let selectedImageFiles = [];
 
 if (inputImgFile) {
@@ -1047,7 +1066,6 @@ if (inputImgFile) {
             selectedImageFiles = Array.from(this.files);
             inputImg.value = `Selected: ${selectedImageFiles.length} file(s)`;
 
-            // Optional: local preview logic could go here if needed for multiple images
         } else {
             selectedImageFiles = [];
         }
@@ -1055,7 +1073,6 @@ if (inputImgFile) {
 }
 
 
-// Toggle time/board inputs based on category
 if (inputCategory) {
     inputCategory.addEventListener('change', (e) => {
         if (e.target.value === 'events') {
@@ -1083,7 +1100,6 @@ if (publishBtn) {
             return;
         }
 
-        // Determine badge text/color based on category & input
         let badgeTxt = inputBadge && inputBadge.value.trim() ? inputBadge.value.trim() : "UPDATE";
         let badgeCls = inputBadgeColor ? inputBadgeColor.value : "dev";
         let finalDate = "Just Now";
@@ -1101,7 +1117,6 @@ if (publishBtn) {
             customBoardCol = inputBoardCol.value.trim();
         }
 
-        // Determine Appwrite schema payload based on selected category
         let payload = {};
 
         if (category === 'announcements') {
@@ -1123,7 +1138,6 @@ if (publishBtn) {
             let startTimeVal = new Date().toISOString();
             if (editingPostId) {
                 const existing = postsDB.find(p => p.id === editingPostId);
-                // Preserve original creation time if it exists
                 if (existing && existing.date && existing.date !== "Unknown") startTimeVal = existing.date;
             }
 
@@ -1138,7 +1152,7 @@ if (publishBtn) {
         }
         else if (category === 'patch-notes') {
             payload = {
-                version_number: title, // You might want a dedicated field for this later, using Title for now
+                version_number: title,
                 notes: body,
                 date: finalDate !== "Just Now" ? finalDate : new Date().toISOString(),
                 ...(img && { image: img })
@@ -1157,13 +1171,11 @@ if (publishBtn) {
             publishBtn.textContent = "Publishing...";
             publishBtn.disabled = true;
             try {
-                let finalImageUrl = img; // default to whatever URL or text was typed manually
+                let finalImageUrl = img;
 
-                // If a real file was selected via the "Upload File" button
                 if (selectedImageFiles && selectedImageFiles.length > 0) {
                     publishBtn.textContent = `Uploading ${selectedImageFiles.length} Image(s)...`;
 
-                    // Upload all files concurrently
                     const uploadPromises = selectedImageFiles.map(async (file) => {
                         const uploadedFile = await storage.createFile(
                             APPWRITE_CONFIG.bucketId,
@@ -1175,8 +1187,6 @@ if (publishBtn) {
 
                     const newUrls = await Promise.all(uploadPromises);
 
-                    // Maintain existing manually typed comma URLs if they exist and append the new ones,
-                    // otherwise just use the new ones.
                     if (img && !img.startsWith('Selected: ')) {
                         finalImageUrl = img + ',' + newUrls.join(',');
                     } else {
@@ -1185,7 +1195,6 @@ if (publishBtn) {
 
                     payload.image = finalImageUrl;
                 } else if (img && img.startsWith('Selected: ')) {
-                    // Failsafe in case a "Selected" string got caught without a file mapping
                     finalImageUrl = "";
                     payload.image = "";
                 }
@@ -1202,13 +1211,11 @@ if (publishBtn) {
                     boardColumn: customBoardCol
                 };
 
-                // modify existing or create new post
                 if (editingPostId) {
                     const postIndex = postsDB.findIndex(p => p.id === editingPostId);
                     const oldCategory = postIndex !== -1 ? postsDB[postIndex].category : category;
 
                     if (oldCategory !== category) {
-                        // Moving between collections
                         await databases.deleteDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[oldCategory], editingPostId);
                         const newDoc = await databases.createDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], ID.unique(), payload);
                         if (postIndex !== -1) postsDB[postIndex] = { ...localPostData, id: newDoc.$id };
@@ -1224,7 +1231,6 @@ if (publishBtn) {
                     postsDB.push(newPost);
                 }
 
-                // Reset file selector state
                 selectedImageFiles = [];
                 if (inputImgFile) inputImgFile.value = "";
 
@@ -1250,14 +1256,11 @@ if (publishBtn) {
     });
 }
 
-// --- CMS Toolbar Buttons ---
 document.querySelectorAll('.toolbar-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const tag = e.target.getAttribute('data-tag');
         if (!tag) return;
 
-        // Simple mock insertion at the end for demonstration 
-        // (A real implementation would wrap selected text)
         if (inputBody) {
             inputBody.value += ` ${tag} `;
             inputBody.focus();
@@ -1265,14 +1268,11 @@ document.querySelectorAll('.toolbar-btn').forEach(btn => {
     });
 });
 
-// --- Live Ticking Countdowns ---
-// Cache the event cards that specifically have an end time so we don't query the whole document every second
 let tickingEventCards = [];
 function updateTickingCardsCache() {
     tickingEventCards = Array.from(document.querySelectorAll('.event-card[data-endtime]'));
 }
 
-// Call this once initially and whenever feeds are re-rendered
 updateTickingCardsCache();
 
 setInterval(() => {
@@ -1290,10 +1290,8 @@ setInterval(() => {
         const timeSpan = card.querySelector('.event-meta .mono');
 
         if (now > endD) {
-            // It just expired live! Let's update the card to look ended
-            card.removeAttribute('data-endtime'); // Stop ticking
+            card.removeAttribute('data-endtime');
 
-            // Remove from cached array since it's done ticking
             tickingEventCards.splice(index, 1);
 
             const badgeSpan = card.querySelector('.card-content .badge');
@@ -1319,7 +1317,6 @@ setInterval(() => {
                 timeSpan.style.fontWeight = "bold";
             }
         } else {
-            // Update ticking countdown
             const diffMs = endD - now;
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -1338,18 +1335,16 @@ setInterval(() => {
             }
 
             if (timeSpan && timeSpan.textContent !== timeDisplay) {
-                timeSpan.textContent = timeDisplay; // Only update DOM if text actually changed
+                timeSpan.textContent = timeDisplay;
             }
         }
     });
 }, 1000);
 
-// --- Live Image Carousel Auto-Rotation ---
 let carouselElements = [];
 function updateCarouselCache() {
     carouselElements = Array.from(document.querySelectorAll('.image-carousel'));
 }
-// Hook this cache refresh at the end of renderFeeds as well
 const originalUpdateTickingCardsCache = updateTickingCardsCache;
 updateTickingCardsCache = () => {
     if (typeof originalUpdateTickingCardsCache === 'function') originalUpdateTickingCardsCache();
@@ -1365,7 +1360,7 @@ setInterval(() => {
         if (!rawImages) return;
 
         const images = rawImages.split(',');
-        if (images.length <= 1) return; // No need to rotate a single image
+        if (images.length <= 1) return;
 
         let currentIndex = parseInt(carousel.getAttribute('data-current') || '0', 10);
         const topImg = carousel.querySelector('.carousel-top');
@@ -1373,43 +1368,32 @@ setInterval(() => {
 
         if (!topImg || !bottomImg) return;
 
-        // Calculate the next index
         const nextIndex = (currentIndex + 1) % images.length;
 
-        // 1. Prepare bottom image to be the NEXT image
         bottomImg.src = images[nextIndex];
 
-        // 2. Trigger CSS Crossfade (Fade out the current top image to reveal the bottom one)
         topImg.style.opacity = '0';
 
-        // 3. After the CSS transition finishes (500ms based on style.css), reset state
         setTimeout(() => {
-            // Snap the top image to the new image while invisible
             topImg.src = images[nextIndex];
 
-            // Instantly restore opacity (requires briefly disabling transition to avoid reverse fade)
             topImg.style.transition = 'none';
             topImg.style.opacity = '1';
 
-            // Re-enable transition for the NEXT cycle
-            // Use requestAnimationFrame for smoother paint cycle resumption
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     topImg.style.transition = 'opacity 0.5s ease-in-out';
                 });
             });
 
-            // Update tracking index
             carousel.setAttribute('data-current', nextIndex);
-        }, 500); // Must match transition duration in CSS
+        }, 500);
     });
-}, 4000); // Rotate every 4 seconds
+}, 4000);
 
-// --- Background Slideshow Rotation ---
 const bgSlides = ['/image.png', '/Copy_of_goat.png', '/gat_1.png'];
 let bgCurrentIndex = 0;
 
-// Keep slideshow height fixed (handled via CSS `position: fixed` now)
 
 setInterval(() => {
     const topSlide = document.getElementById('bg-slide-top');
@@ -1418,14 +1402,11 @@ setInterval(() => {
 
     const nextIndex = (bgCurrentIndex + 1) % bgSlides.length;
 
-    // Prepare the bottom layer with the next image
     bottomSlide.style.backgroundImage = `url('${bgSlides[nextIndex]}')`;
     bottomSlide.style.opacity = '0.3';
 
-    // Fade out the top layer to reveal the bottom
     topSlide.style.opacity = '0';
 
-    // After transition completes, swap top to the new image and restore
     setTimeout(() => {
         topSlide.style.transition = 'none';
         topSlide.style.backgroundImage = `url('${bgSlides[nextIndex]}')`;
@@ -1436,5 +1417,5 @@ setInterval(() => {
         }, 50);
 
         bgCurrentIndex = nextIndex;
-    }, 1500); // Must match CSS transition duration
-}, 8000); // Rotate every 8 seconds
+    }, 1500);
+}, 8000);

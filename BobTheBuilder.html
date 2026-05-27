@@ -3,9 +3,10 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://fra.cloud.appwrite.io https://vitals.vercel-insights.com https://va.vercel-scripts.com; img-src 'self' data: https: blob:; media-src 'self';">
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Soul Rend Command Hub</title>
+  <title>SoulRend — Dev Portal</title>
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +24,7 @@
   <nav class="navbar glass-panel">
     <div class="nav-left">
       <div class="logo">
-        <span class="logo-text" style="font-family: 'Oswald', sans-serif; letter-spacing: 4px; font-size: 24px;">SOUL
-          REND</span>
+        <span class="logo-text" style="font-family: 'Oswald', sans-serif; letter-spacing: 4px; font-size: 24px;">SoulRend</span>
         <div class="logo-glow"></div>
       </div>
     </div>
@@ -255,7 +255,7 @@
     </div>
   </div>
 
-  <!-- Toast Notification for Publishing -->
+  <div id="toast" class="toast">Post Published!</div>
   <!-- App Footer (GitHub Style) -->
   <footer class="app-footer glass-panel">
     <div class="footer-content">
@@ -288,6 +288,31 @@
 
 
   <script type="module" src="/BobTheBuilder.js"></script>
+
+  <div id="loading-screen">
+    <canvas id="loading-canvas"></canvas>
+    <div class="loading-content">
+      <div class="loading-icon">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="38" stroke="#0dd7f2" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5"/>
+          <circle cx="50" cy="50" r="28" stroke="#0dd7f2" stroke-width="1" stroke-dasharray="2 4" opacity="0.4"/>
+          <circle cx="50" cy="50" r="18" stroke="#0dd7f2" stroke-width="1.5" opacity="0.6"/>
+          <line x1="50" y1="12" x2="50" y2="22" stroke="#0dd7f2" stroke-width="1.5"/>
+          <line x1="50" y1="78" x2="50" y2="88" stroke="#0dd7f2" stroke-width="1.5"/>
+          <line x1="12" y1="50" x2="22" y2="50" stroke="#0dd7f2" stroke-width="1.5"/>
+          <line x1="78" y1="50" x2="88" y2="50" stroke="#0dd7f2" stroke-width="1.5"/>
+          <line x1="23" y1="23" x2="30" y2="30" stroke="#0dd7f2" stroke-width="1"/>
+          <line x1="77" y1="23" x2="70" y2="30" stroke="#0dd7f2" stroke-width="1"/>
+          <line x1="23" y1="77" x2="30" y2="70" stroke="#0dd7f2" stroke-width="1"/>
+          <line x1="77" y1="77" x2="70" y2="70" stroke="#0dd7f2" stroke-width="1"/>
+          <text x="50" y="56" text-anchor="middle" fill="#0dd7f2" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">SR</text>
+        </svg>
+      </div>
+      <h1 class="loading-title">SoulRend</h1>
+      <div class="loading-line"></div>
+      <button id="loading-enter-btn" class="loading-btn">INITIALIZE SYSTEM</button>
+    </div>
+  </div>
 </body>
 
 </html>
