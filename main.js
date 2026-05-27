@@ -52,7 +52,7 @@ injectSpeedInsights();
     }
     draw();
 
-    const loadingAudio = new Audio('/bg2.mp3');
+    const loadingAudio = new Audio('/bg_new.webm');
     loadingAudio.loop = true;
     loadingAudio.volume = 0.4;
 
@@ -425,7 +425,7 @@ if (communityBtn && communityDropdown) {
 
 const bgAudio = document.getElementById('bg-audio');
 const musicToggleBtn = document.getElementById('music-toggle-btn');
-const tracks = ['/bg1.mp3', '/bg2.mp3'];
+const tracks = ['/bg_new.webm'];
 let isMusicPlaying = false;
 
 let currentTrackIndex = Math.floor(Math.random() * tracks.length);
