@@ -52,8 +52,33 @@ injectSpeedInsights();
     }
     draw();
 
-    btn.addEventListener('click', () => {
+    const loadingAudio = new Audio('/bg2.mp3');
+    loadingAudio.loop = true;
+    loadingAudio.volume = 0.4;
+
+    const playPromise = loadingAudio.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(() => {
+            screen.addEventListener('click', () => {
+                loadingAudio.play().catch(() => {});
+            }, { once: true });
+        });
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         screen.classList.add('hidden');
+        
+        const fadeOut = setInterval(() => {
+            if (loadingAudio.volume > 0.05) {
+                loadingAudio.volume -= 0.05;
+            } else {
+                clearInterval(fadeOut);
+                loadingAudio.pause();
+                loadingAudio.currentTime = 0;
+            }
+        }, 50);
+
         screen.addEventListener('transitionend', () => {
             screen.remove();
             cancelAnimationFrame(rafId);
