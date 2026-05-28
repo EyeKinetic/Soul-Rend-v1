@@ -587,14 +587,12 @@ function createPostHtml(post) {
     if (post.img) {
         const imgArray = post.img.split(',');
         if (imgArray.length === 1) {
-            imgHtml = `<img src="${encodeHTML(imgArray[0].trim())}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
+            imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">';
         } else if (imgArray.length > 1) {
-            imgHtml = `
-            <div class="image-carousel" data-images="${encodeHTML(post.img)}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
-                <img src="${encodeHTML(imgArray[1].trim())}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
-                <img src="${encodeHTML(imgArray[0].trim())}" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
-            </div>
-            `;
+            imgHtml = '<div class="image-carousel" data-images="' + encodeHTML(post.img) + '" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">\n' +
+                '  <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
+                '  <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
+                '</div>';
         }
     }
 
@@ -639,20 +637,18 @@ function createPostHtml(post) {
         if (post.img) {
             const imgArray = post.img.split(',').map(s => s.trim());
             if (imgArray.length === 1) {
-                eventBgHtml = `
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
-                    <img src="${encodeHTML(imgArray[0])}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
-                </div>
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>
-                `;
+                eventBgHtml = '' +
+                '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">\n' +
+                    '<img src="' + encodeHTML(imgArray[0]) + '" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
+                '</div>\n' +
+                '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>\n';
             } else if (imgArray.length > 1) {
-                eventBgHtml = `
-                <div class="image-carousel" data-images="${encodeHTML(post.img)}" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">
-                    <img src="${encodeHTML(imgArray[1])}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
-                    <img src="${encodeHTML(imgArray[0])}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
-                </div>
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>
-                `;
+                eventBgHtml = '' +
+                '<div class="image-carousel" data-images="' + encodeHTML(post.img) + '" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">\n' +
+                    '<img src="' + encodeHTML(imgArray[1]) + '" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
+                    '<img src="' + encodeHTML(imgArray[0]) + '" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
+                '</div>\n' +
+                '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>\n';
             }
         } else {
             eventBgHtml = `
@@ -663,40 +659,38 @@ function createPostHtml(post) {
         const safeTimeSty = timeSty.replace(/[<>"'`]/g, '');
         const safeBadgeSty = badgeSty.replace(/[<>"'`]/g, '');
         const safeBadgeTxt = sanitize(badgeTxt);
-        return `
-      <div id="post-${encodeHTML(post.id)}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${encodeHTML(post.end_time)}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
-        ${eventBgHtml}
-        <button class="delete-btn" onclick="deletePost('${encodeHTML(post.id)}')" style="z-index: 10;">Delete Post</button>
-        <button class="edit-btn btn-secondary" onclick="editPost('${encodeHTML(post.id)}')" style="z-index: 10;">Edit Post</button>
-        <div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">
-          <span class="badge ${encodeHTML(post.badgeClass)}" style="${safeBadgeSty}">${safeBadgeTxt}</span>
-          <h3 class="card-title" style="margin-top:16px">${safeTitle}</h3>
-          <p class="card-excerpt" style="margin-top:8px">${safeContent}</p>
-          <div class="event-meta" style="margin-top:24px">
-            <span class="mono" style="${safeTimeSty}">${encodeHTML(timeDisplay)}</span >
-            ${btnHtml}
-          </div>
-        </div>
-      </div>
-    `;
+        return '' +
+          '<div id="post-' + encodeHTML(post.id) + '" class="featured-card card event-card post-item" ' + (post.end_time ? 'data-endtime="' + encodeHTML(post.end_time) + '"' : "") + ' style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+            eventBgHtml + '\n' +
+            '<button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
+            '<button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Edit Post</button>\n' +
+            '<div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">\n' +
+              '<span class="badge ' + encodeHTML(post.badgeClass) + '" style="' + safeBadgeSty + '">' + safeBadgeTxt + '</span>\n' +
+              '<h3 class="card-title" style="margin-top:16px">' + safeTitle + '</h3>\n' +
+              '<p class="card-excerpt" style="margin-top:8px">' + safeContent + '</p>\n' +
+              '<div class="event-meta" style="margin-top:24px">\n' +
+                '<span class="mono" style="' + safeTimeSty + '">' + encodeHTML(timeDisplay) + '</span >\n' +
+                btnHtml + '\n' +
+              '</div>\n' +
+            '</div>\n' +
+          '</div>\n';
     }
 
-    return `
-    <div id="post-${encodeHTML(post.id)}" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
-      <button class="delete-btn" onclick="deletePost('${encodeHTML(post.id)}')" style="z-index: 10;">Delete Post</button>
-      <button class="edit-btn btn-secondary" onclick="editPost('${encodeHTML(post.id)}')">Edit Post</button>
-      ${imgHtml}
-      <div style="padding: 20px; pointer-events: none;">
-        <div class="news-header">
-          <span class="badge ${encodeHTML(post.badgeClass)}">${safeBadge}</span>
-          <span class="news-meta mono">${encodeHTML(displayDate)}</span>
-        </div>
-        <h4 class="news-title">${safeTitle}</h4>
-        <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${safeContent}</p>
-        <button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>
-      </div>
-    </div>
-  `;
+    return '' +
+      '<div id="post-' + encodeHTML(post.id) + '" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+        '<button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
+        '<button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit Post</button>\n' +
+        imgHtml + '\n' +
+        '<div style="padding: 20px; pointer-events: none;">\n' +
+          '<div class="news-header">\n' +
+            '<span class="badge ' + encodeHTML(post.badgeClass) + '">' + safeBadge + '</span>\n' +
+            '<span class="news-meta mono">' + encodeHTML(displayDate) + '</span>\n' +
+          '</div>\n' +
+          '<h4 class="news-title">' + safeTitle + '</h4>\n' +
+          '<p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">' + safeContent + '</p>\n' +
+          '<button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>\n' +
+        '</div>\n' +
+      '</div>\n';
 }
 
 function renderFeeds() {
@@ -774,55 +768,51 @@ function renderFeeds() {
                 if (post.img) {
                     const imgArray = post.img.split(',');
                     if (imgArray.length === 1) {
-                        imgHtml = `<img src="${encodeHTML(imgArray[0])}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">`;
+                        imgHtml = '<img src="' + encodeHTML(imgArray[0]) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
                     } else if (imgArray.length > 1) {
-                        imgHtml = `
-                        <div class="image-carousel trello-card-cover" data-images="${encodeHTML(post.img)}" data-current="0" style="position:relative; width:100%; height:200px;">
-                            <img src="${encodeHTML(imgArray[1])}" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
-                            <img src="${encodeHTML(imgArray[0])}" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
-                        </div>
-                        `;
+                        imgHtml = '' +
+                        '<div class="image-carousel trello-card-cover" data-images="' + encodeHTML(post.img) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
+                            '<img src="' + encodeHTML(imgArray[1]) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                            '<img src="' + encodeHTML(imgArray[0]) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                        '</div>\n';
                     }
                 }
                 const safeTitle = sanitize(post.title);
                 const safeContent = sanitize(post.content);
                 const safeBadge = sanitize(post.badge);
-                return `
-                  <div class="trello-card post-item" id="post-${encodeHTML(post.id)}" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
-                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost('${encodeHTML(post.id)}')">Delete</button>
-                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost('${encodeHTML(post.id)}')">Edit</button>
-                    ${imgHtml}
-                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">
-                        <div class="trello-card-badge" style="color:${encodeHTML(colorAccent)}">${safeBadge}</div>
-                        <div class="trello-card-title">${safeTitle}</div>
-                        <div class="trello-card-excerpt">${safeContent}</div>
-                    </div>
-                  </div>
-                `;
+                return '' +
+                  '<div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+                    '<button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
+                    '<button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
+                    imgHtml + '\n' +
+                    '<div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
+                        '<div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + safeBadge + '</div>\n' +
+                        '<div class="trello-card-title">' + safeTitle + '</div>\n' +
+                        '<div class="trello-card-excerpt">' + safeContent + '</div>\n' +
+                    '</div>\n' +
+                  '</div>\n';
                 }).join('');
 
                 const isExpanded = groupPosts.length === 1 ? 'expanded' : '';
                 const displayChevron = groupPosts.length > 1 ? '<span style="font-size: 10px; margin-left: 4px;">▼</span>' : '';
 
-                cardsHtml += `
-                  <div class="trello-card-group ${isExpanded}">
-                    <div class="trello-card-group-header" onclick="this.parentElement.classList.toggle('expanded')">
-                        <span class="group-title" style="color: ${encodeHTML(colorAccent)}; flex: 1; margin-right: 8px;">${sanitize(title)}</span>
-                        <span class="group-count">${groupPosts.length} post${groupPosts.length !== 1 ? 's' : ''} ${displayChevron}</span>
-                    </div>
-                    <div class="trello-card-group-content">
-                        ${groupCardsHtml}
-                    </div>
-                  </div>
-                `;
+                cardsHtml += '' +
+                  '<div class="trello-card-group ' + isExpanded + '">\n' +
+                    '<div class="trello-card-group-header" onclick="this.parentElement.classList.toggle(\'expanded\')">\n' +
+                        '<span class="group-title" style="color: ' + encodeHTML(colorAccent) + '; flex: 1; margin-right: 8px;">' + sanitize(title) + '</span>\n' +
+                        '<span class="group-count">' + groupPosts.length + ' post' + (groupPosts.length !== 1 ? 's' : '') + ' ' + displayChevron + '</span>\n' +
+                    '</div>\n' +
+                    '<div class="trello-card-group-content">\n' +
+                        groupCardsHtml + '\n' +
+                    '</div>\n' +
+                  '</div>\n';
             });
 
-            const columnHtml = `
-              <div class="board-column">
-                <div class="board-column-header" style="border-top: 3px solid ${encodeHTML(colorAccent)}">${sanitize(colName)}</div>
-                ${cardsHtml}
-              </div>
-            `;
+            const columnHtml = '' +
+              '<div class="board-column">\n' +
+                '<div class="board-column-header" style="border-top: 3px solid ' + encodeHTML(colorAccent) + '">' + sanitize(colName) + '</div>\n' +
+                cardsHtml + '\n' +
+              '</div>\n';
             infoContainer.insertAdjacentHTML('beforeend', columnHtml);
         });
 
