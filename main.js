@@ -5,6 +5,7 @@ import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/a
 import DOMPurify from 'dompurify';
 
 const sanitize = (str) => DOMPurify.sanitize(str ?? '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+const encodeHTML = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 inject();
 injectSpeedInsights();
@@ -149,16 +150,17 @@ function initBackgroundAnimation() {
 
     const particles = [];
     for (let i = 0; i < 150; i++) {
-        particles.push(new Reishi());
-        particles[i].y = Math.random() * height;
+        const p = new Reishi();
+        p.y = Math.random() * height;
+        particles.push(p);
     }
 
     function animate() {
         ctx.clearRect(0, 0, width, height);
 
-        for (let i = 0; i < particles.length; i++) {
-            particles[i].update();
-            particles[i].draw();
+        for (const p of particles) {
+            p.update();
+            p.draw();
         }
 
         requestAnimationFrame(animate);
@@ -178,7 +180,7 @@ async function loadFromAppwrite() {
         let allPosts = [];
 
         const promises = categories.map(async (category) => {
-            const collectionId = APPWRITE_CONFIG.collections[category];
+            const collectionId = Reflect.get(APPWRITE_CONFIG.collections, category);
             const response = await databases.listDocuments(
                 APPWRITE_CONFIG.databaseId,
                 collectionId,
@@ -314,6 +316,20 @@ function filterWiki(query) {
             }
 
             card.style.display = showCard ? 'flex' : 'none';
+        });
+
+        const groups = document.querySelectorAll('.trello-card-group');
+        groups.forEach(group => {
+            const visibleCards = Array.from(group.querySelectorAll('.trello-card'))
+                .filter(c => c.style.display !== 'none');
+            if (visibleCards.length === 0) {
+                group.style.display = 'none';
+            } else {
+                group.style.display = 'flex';
+                if (searchWords.length > 0) {
+                    group.classList.add('expanded');
+                }
+            }
         });
 
         const columns = document.querySelectorAll('.board-column');
@@ -571,12 +587,12 @@ function createPostHtml(post) {
     if (post.img) {
         const imgArray = post.img.split(',');
         if (imgArray.length === 1) {
-            imgHtml = `<img src="${imgArray[0]}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
+            imgHtml = `<img src="${encodeHTML(imgArray[0].trim())}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
         } else if (imgArray.length > 1) {
             imgHtml = `
-            <div class="image-carousel" data-images="${post.img}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
-                <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
-                <img src="${imgArray[0]}" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
+            <div class="image-carousel" data-images="${encodeHTML(post.img)}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
+                <img src="${encodeHTML(imgArray[1].trim())}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
+                <img src="${encodeHTML(imgArray[0].trim())}" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
             </div>
             `;
         }
@@ -625,15 +641,15 @@ function createPostHtml(post) {
             if (imgArray.length === 1) {
                 eventBgHtml = `
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
-                    <img src="${imgArray[0]}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
+                    <img src="${encodeHTML(imgArray[0])}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
                 </div>
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>
                 `;
             } else if (imgArray.length > 1) {
                 eventBgHtml = `
-                <div class="image-carousel" data-images="${post.img}" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">
-                    <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
-                    <img src="${imgArray[0]}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
+                <div class="image-carousel" data-images="${encodeHTML(post.img)}" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">
+                    <img src="${encodeHTML(imgArray[1])}" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
+                    <img src="${encodeHTML(imgArray[0])}" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='${fallbackImg}';this.alt='';">
                 </div>
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>
                 `;
@@ -648,16 +664,16 @@ function createPostHtml(post) {
         const safeBadgeSty = badgeSty.replace(/[<>"'`]/g, '');
         const safeBadgeTxt = sanitize(badgeTxt);
         return `
-      <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, '${post.id}')">
+      <div id="post-${encodeHTML(post.id)}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${encodeHTML(post.end_time)}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
         ${eventBgHtml}
-        <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
-        <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')" style="z-index: 10;">Edit Post</button>
+        <button class="delete-btn" onclick="deletePost('${encodeHTML(post.id)}')" style="z-index: 10;">Delete Post</button>
+        <button class="edit-btn btn-secondary" onclick="editPost('${encodeHTML(post.id)}')" style="z-index: 10;">Edit Post</button>
         <div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">
-          <span class="badge ${post.badgeClass}" style="${safeBadgeSty}">${safeBadgeTxt}</span>
+          <span class="badge ${encodeHTML(post.badgeClass)}" style="${safeBadgeSty}">${safeBadgeTxt}</span>
           <h3 class="card-title" style="margin-top:16px">${safeTitle}</h3>
           <p class="card-excerpt" style="margin-top:8px">${safeContent}</p>
           <div class="event-meta" style="margin-top:24px">
-            <span class="mono" style="${safeTimeSty}">${timeDisplay}</span >
+            <span class="mono" style="${safeTimeSty}">${encodeHTML(timeDisplay)}</span >
             ${btnHtml}
           </div>
         </div>
@@ -666,14 +682,14 @@ function createPostHtml(post) {
     }
 
     return `
-    <div id="post-${post.id}" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
-      <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
-      <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
+    <div id="post-${encodeHTML(post.id)}" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
+      <button class="delete-btn" onclick="deletePost('${encodeHTML(post.id)}')" style="z-index: 10;">Delete Post</button>
+      <button class="edit-btn btn-secondary" onclick="editPost('${encodeHTML(post.id)}')">Edit Post</button>
       ${imgHtml}
       <div style="padding: 20px; pointer-events: none;">
         <div class="news-header">
-          <span class="badge ${post.badgeClass}">${safeBadge}</span>
-          <span class="news-meta mono">${displayDate}</span>
+          <span class="badge ${encodeHTML(post.badgeClass)}">${safeBadge}</span>
+          <span class="news-meta mono">${encodeHTML(displayDate)}</span>
         </div>
         <h4 class="news-title">${safeTitle}</h4>
         <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${safeContent}</p>
@@ -711,15 +727,15 @@ function renderFeeds() {
         return timeB - timeA;
     }).forEach(post => {
         if (post.category !== 'information') {
-            const container = containers[post.category];
+            const container = Reflect.get(containers, post.category);
             if (container) {
                 container.insertAdjacentHTML('beforeend', createPostHtml(post));
             }
         }
         else {
             const column = post.boardColumn || "General";
-            if (!boardGroups[column]) boardGroups[column] = [];
-            boardGroups[column].push(post);
+            if (!Reflect.has(boardGroups, column)) Reflect.set(boardGroups, column, []);
+            Reflect.get(boardGroups, column).push(post);
         }
     });
 
@@ -739,39 +755,71 @@ function renderFeeds() {
 
         Object.keys(boardGroups).forEach(colName => {
             const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (colName || "").toLowerCase());
-            const colorAccent = lookup ? colColors[lookup] : "#ffffff";
-            let cardsHtml = boardGroups[colName].map(post => {
+            const colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
+            
+            const titleGroups = {};
+            const colPosts = Reflect.get(boardGroups, colName);
+            colPosts.forEach(post => {
+                const title = post.title || "Untitled";
+                if (!Reflect.has(titleGroups, title)) Reflect.set(titleGroups, title, []);
+                Reflect.get(titleGroups, title).push(post);
+            });
+
+            let cardsHtml = '';
+            Object.keys(titleGroups).forEach(title => {
+                const groupPosts = Reflect.get(titleGroups, title);
+                
+                let groupCardsHtml = groupPosts.map(post => {
                 let imgHtml = '';
                 if (post.img) {
                     const imgArray = post.img.split(',');
                     if (imgArray.length === 1) {
-                        imgHtml = `<img src="${imgArray[0]}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">`;
+                        imgHtml = `<img src="${encodeHTML(imgArray[0])}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">`;
                     } else if (imgArray.length > 1) {
                         imgHtml = `
-                        <div class="image-carousel trello-card-cover" data-images="${post.img}" data-current="0" style="position:relative; width:100%; height:200px;">
-                            <img src="${imgArray[1]}" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
-                            <img src="${imgArray[0]}" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
+                        <div class="image-carousel trello-card-cover" data-images="${encodeHTML(post.img)}" data-current="0" style="position:relative; width:100%; height:200px;">
+                            <img src="${encodeHTML(imgArray[1])}" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
+                            <img src="${encodeHTML(imgArray[0])}" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
                         </div>
                         `;
                     }
                 }
+                const safeTitle = sanitize(post.title);
+                const safeContent = sanitize(post.content);
+                const safeBadge = sanitize(post.badge);
                 return `
-                  <div class="trello-card post-item" id="post-${post.id}" onclick="openPostViewer(event, '${post.id}')">
-                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost('${post.id}')">Delete</button>
-                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost('${post.id}')">Edit</button>
+                  <div class="trello-card post-item" id="post-${encodeHTML(post.id)}" onclick="openPostViewer(event, '${encodeHTML(post.id)}')">
+                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost('${encodeHTML(post.id)}')">Delete</button>
+                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost('${encodeHTML(post.id)}')">Edit</button>
                     ${imgHtml}
                     <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">
-                        <div class="trello-card-badge" style="color:${colorAccent}">${post.badge}</div>
-                        <div class="trello-card-title">${post.title}</div>
-                        <div class="trello-card-excerpt">${post.content}</div>
+                        <div class="trello-card-badge" style="color:${encodeHTML(colorAccent)}">${safeBadge}</div>
+                        <div class="trello-card-title">${safeTitle}</div>
+                        <div class="trello-card-excerpt">${safeContent}</div>
                     </div>
                   </div>
                 `;
-            }).join('');
+                }).join('');
+
+                const isExpanded = groupPosts.length === 1 ? 'expanded' : '';
+                const displayChevron = groupPosts.length > 1 ? '<span style="font-size: 10px; margin-left: 4px;">▼</span>' : '';
+
+                cardsHtml += `
+                  <div class="trello-card-group ${isExpanded}">
+                    <div class="trello-card-group-header" onclick="this.parentElement.classList.toggle('expanded')">
+                        <span class="group-title" style="color: ${encodeHTML(colorAccent)}; flex: 1; margin-right: 8px;">${sanitize(title)}</span>
+                        <span class="group-count">${groupPosts.length} post${groupPosts.length !== 1 ? 's' : ''} ${displayChevron}</span>
+                    </div>
+                    <div class="trello-card-group-content">
+                        ${groupCardsHtml}
+                    </div>
+                  </div>
+                `;
+            });
 
             const columnHtml = `
               <div class="board-column">
-                <div class="board-column-header" style="border-top: 3px solid ${colorAccent}">${colName}</div>
+                <div class="board-column-header" style="border-top: 3px solid ${encodeHTML(colorAccent)}">${sanitize(colName)}</div>
                 ${cardsHtml}
               </div>
             `;
