@@ -500,54 +500,48 @@ const playAudioOnFirstClick = (e) => {
 };
 document.addEventListener('click', playAudioOnFirstClick);
 
-window.openPostViewer = function (e, postId) {
-    if (e && e.target && (e.target.classList.contains('delete-btn') || e.target.classList.contains('edit-btn'))) return;
+function extractMetadata(imgString) {
+    if (!imgString) return { cleanImg: "", meta: {} };
+    const parts = imgString.split('?metadata=');
+    if (parts.length > 1) {
+        try {
+            return { cleanImg: parts[0], meta: JSON.parse(decodeURIComponent(parts[1])) };
+        } catch(e) {}
+    }
+    return { cleanImg: imgString, meta: {} };
+}
 
-    const post = postsDB.find(p => p.id === postId);
+function parseMarkdown(text) {
+    let html = encodeHTML(text);
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--primary-accent); text-decoration: underline;">$1</a>');
+    return html;
+}
+
+window.openPostViewer = function (e, id) {
+    e.stopPropagation();
+    const post = postsDB.find(p => p.id === id);
     if (!post) return;
 
     viewerTitle.textContent = post.title;
-    viewerBody.textContent = post.content;
+    viewerBody.innerHTML = parseMarkdown(post.content);
 
     let displayStr = post.date;
     try {
         const d = new Date(post.date);
-        if (!isNaN(d.getTime())) displayStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    } catch (e) { }
-    if (post.category === 'events' && post.end_time) {
-        try {
-            const ed = new Date(post.end_time);
-            if (!isNaN(ed.getTime())) displayStr += ` - Ends: ${ed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
-        } catch (e) { }
-    }
+        if (!isNaN(d.getTime())) {
+            displayStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+    } catch (err) { }
     viewerDate.textContent = displayStr;
-    viewerBadge.textContent = post.badge;
-    viewerBadge.className = `badge ${post.badgeClass || 'dev'}`;
 
-    if (post.category === 'information') {
-        const colColors = {
-            "Red": "#E50914",
-            "Purple": "#8e44ad",
-            "Blue": "#00D4FF",
-            "Orange": "#F59E0B",
-            "Green": "#10B981",
-            "Yellow": "#FBBF24",
-            "Pink": "#EC4899",
-            "Cyan": "#06B6D4",
-            "White": "#FFFFFF",
-            "Gray": "#9CA3AF"
-        };
-        const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (post.boardColumn || "").toLowerCase());
-        const colorAccent = lookup ? colColors[lookup] : "#FFFFFF";
-        viewerBadge.style.background = 'rgba(0,0,0,0.5)';
-        viewerBadge.style.color = colorAccent;
-    } else {
-        viewerBadge.style.background = '';
-        viewerBadge.style.color = '';
-    }
+    viewerBadge.textContent = post.badge;
+    viewerBadge.className = 'badge ' + (post.badgeClass || 'dev');
 
     if (post.img) {
-        let firstImg = post.img;
+        const { cleanImg } = extractMetadata(post.img);
+        let firstImg = cleanImg;
         if (firstImg.includes(',')) firstImg = firstImg.split(',')[0];
 
         viewerImg.src = firstImg;
@@ -580,23 +574,25 @@ function createPostHtml(post) {
     let imgHtml = '';
     const fallbackImg = "https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable";
 
+    const { cleanImg, meta } = extractMetadata(post.img);
+
     const safeTitle = sanitize(post.title);
-    const safeContent = sanitize(post.content);
+    const safeContent = parseMarkdown(post.content);
     const safeBadge = sanitize(post.badge);
 
-    if (post.img) {
-        const imgArray = post.img.split(',');
+    if (cleanImg) {
+        const imgArray = cleanImg.split(',');
         if (imgArray.length === 1) {
             imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">';
         } else if (imgArray.length > 1) {
-            imgHtml = '<div class="image-carousel" data-images="' + encodeHTML(post.img) + '" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">\n' +
+            imgHtml = '<div class="image-carousel" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">\n' +
                 '  <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
                 '  <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
                 '</div>';
         }
     }
 
-    if (post.category === 'events' && post.img) {
+    if (post.category === 'events' && cleanImg) {
         let isExpired = false;
         let timeDisplay = displayDate;
 
@@ -628,14 +624,19 @@ function createPostHtml(post) {
 
         const badgeTxt = isExpired ? "ENDED" : post.badge;
         const badgeSty = isExpired ? "background: rgba(255,255,255,0.1); color: #888; border-color: #555;" : "";
-        const btnHtml = isExpired
+        let btnHtml = isExpired
             ? `<button class="btn-secondary" disabled style="padding: 8px 16px; font-size: 14px; opacity: 0.5; pointer-events: auto; cursor: not-allowed;">Event Over</button>`
             : `<a href="https://discord.gg/EwgsJSPAyy" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">Join Now</button></a>`;
+        
+        if (!isExpired && meta.ctaText && meta.ctaLink) {
+            btnHtml = `<a href="${encodeHTML(meta.ctaLink)}" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="padding: 8px 16px; font-size: 14px; pointer-events: auto; cursor: pointer;">${encodeHTML(meta.ctaText)}</button></a>`;
+        }
+
         const timeSty = isExpired ? "color: #ff4a4a; font-weight: bold;" : "";
 
         let eventBgHtml = '';
-        if (post.img) {
-            const imgArray = post.img.split(',').map(s => s.trim());
+        if (cleanImg) {
+            const imgArray = cleanImg.split(',').map(s => s.trim());
             if (imgArray.length === 1) {
                 eventBgHtml = '' +
                 '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">\n' +
@@ -644,7 +645,7 @@ function createPostHtml(post) {
                 '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>\n';
             } else if (imgArray.length > 1) {
                 eventBgHtml = '' +
-                '<div class="image-carousel" data-images="' + encodeHTML(post.img) + '" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">\n' +
+                '<div class="image-carousel" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">\n' +
                     '<img src="' + encodeHTML(imgArray[1]) + '" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
                     '<img src="' + encodeHTML(imgArray[0]) + '" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
                 '</div>\n' +
@@ -659,13 +660,13 @@ function createPostHtml(post) {
         const safeTimeSty = timeSty.replace(/[<>"'`]/g, '');
         const safeBadgeSty = badgeSty.replace(/[<>"'`]/g, '');
         const safeBadgeTxt = sanitize(badgeTxt);
+        const accentStyle = meta.color ? `box-shadow: 0 0 15px ${encodeHTML(meta.color)}40; border: 1px solid ${encodeHTML(meta.color)}80;` : `border: none;`;
+
         return '' +
-          '<div id="post-' + encodeHTML(post.id) + '" class="featured-card card event-card post-item" ' + (post.end_time ? 'data-endtime="' + encodeHTML(post.end_time) + '"' : "") + ' style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; border: none; background: #0A0B10;" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+          '<div id="post-' + encodeHTML(post.id) + '" class="featured-card card event-card post-item" ' + (post.end_time ? 'data-endtime="' + encodeHTML(post.end_time) + '"' : "") + ' style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; background: #0A0B10; ' + accentStyle + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
             eventBgHtml + '\n' +
-            '<button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
-            '<button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Edit Post</button>\n' +
             '<div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">\n' +
-              '<span class="badge ' + encodeHTML(post.badgeClass) + '" style="' + safeBadgeSty + '">' + safeBadgeTxt + '</span>\n' +
+              '<span class="badge ' + encodeHTML(post.badgeClass || "") + '" style="' + safeBadgeSty + '">' + safeBadgeTxt + '</span>\n' +
               '<h3 class="card-title" style="margin-top:16px">' + safeTitle + '</h3>\n' +
               '<p class="card-excerpt" style="margin-top:8px">' + safeContent + '</p>\n' +
               '<div class="event-meta" style="margin-top:24px">\n' +
@@ -676,19 +677,24 @@ function createPostHtml(post) {
           '</div>\n';
     }
 
+    let defaultBtnHtml = '<button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>';
+    if (meta.ctaText && meta.ctaLink) {
+        defaultBtnHtml = `<a href="${encodeHTML(meta.ctaLink)}" target="_blank" rel="noopener noreferrer"><button class="btn-primary pulse" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto; cursor: pointer;">${encodeHTML(meta.ctaText)}</button></a>`;
+    }
+    
+    const cardAccent = meta.color ? `box-shadow: 0 0 15px ${encodeHTML(meta.color)}30; border: 1px solid ${encodeHTML(meta.color)}60;` : ``;
+
     return '' +
-      '<div id="post-' + encodeHTML(post.id) + '" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
-        '<button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
-        '<button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit Post</button>\n' +
+      '<div id="post-' + encodeHTML(post.id) + '" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer; ' + cardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
         imgHtml + '\n' +
         '<div style="padding: 20px; pointer-events: none;">\n' +
           '<div class="news-header">\n' +
-            '<span class="badge ' + encodeHTML(post.badgeClass) + '">' + safeBadge + '</span>\n' +
+            '<span class="badge ' + encodeHTML(post.badgeClass || "") + '">' + safeBadge + '</span>\n' +
             '<span class="news-meta mono">' + encodeHTML(displayDate) + '</span>\n' +
           '</div>\n' +
           '<h4 class="news-title">' + safeTitle + '</h4>\n' +
           '<p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">' + safeContent + '</p>\n' +
-          '<button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>\n' +
+          defaultBtnHtml + '\n' +
         '</div>\n' +
       '</div>\n';
 }
@@ -764,26 +770,27 @@ function renderFeeds() {
                 const groupPosts = Reflect.get(titleGroups, title);
                 
                 let groupCardsHtml = groupPosts.map(post => {
+                const { cleanImg, meta } = extractMetadata(post.img);
                 let imgHtml = '';
-                if (post.img) {
-                    const imgArray = post.img.split(',');
+                if (cleanImg) {
+                    const imgArray = cleanImg.split(',');
                     if (imgArray.length === 1) {
-                        imgHtml = '<img src="' + encodeHTML(imgArray[0]) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
+                        imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
                     } else if (imgArray.length > 1) {
                         imgHtml = '' +
-                        '<div class="image-carousel trello-card-cover" data-images="' + encodeHTML(post.img) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
-                            '<img src="' + encodeHTML(imgArray[1]) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
-                            '<img src="' + encodeHTML(imgArray[0]) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                        '<div class="image-carousel trello-card-cover" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
+                            '<img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                            '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
                         '</div>\n';
                     }
                 }
                 const safeTitle = sanitize(post.title);
-                const safeContent = sanitize(post.content);
+                const safeContent = parseMarkdown(post.content);
                 const safeBadge = sanitize(post.badge);
+                const trelloCardAccent = meta.color ? `box-shadow: 0 0 10px ${encodeHTML(meta.color)}40; border-left: 3px solid ${encodeHTML(meta.color)};` : ``;
+                
                 return '' +
-                  '<div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
-                    '<button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
-                    '<button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
+                  '<div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" style="' + trelloCardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
                     imgHtml + '\n' +
                     '<div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
                         '<div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + safeBadge + '</div>\n' +
