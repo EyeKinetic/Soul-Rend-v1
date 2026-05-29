@@ -147,16 +147,17 @@ function initBackgroundAnimation() {
 
     const particles = [];
     for (let i = 0; i < 150; i++) {
-        particles.push(new Reishi());
-        particles[i].y = Math.random() * height;
+        const p = new Reishi();
+        p.y = Math.random() * height;
+        particles.push(p);
     }
 
     function animate() {
         ctx.clearRect(0, 0, width, height);
 
-        for (let i = 0; i < particles.length; i++) {
-            particles[i].update();
-            particles[i].draw();
+        for (const p of particles) {
+            p.update();
+            p.draw();
         }
 
         requestAnimationFrame(animate);
@@ -176,7 +177,7 @@ async function loadFromAppwrite() {
         let allPosts = [];
 
         const promises = categories.map(async (category) => {
-            const collectionId = APPWRITE_CONFIG.collections[category];
+            const collectionId = Reflect.get(APPWRITE_CONFIG.collections, category);
             const response = await databases.listDocuments(
                 APPWRITE_CONFIG.databaseId,
                 collectionId,
@@ -252,7 +253,7 @@ window.deletePost = async function (id) {
         try {
             const post = postsDB.find(p => p.id === id);
             if (post) {
-                const collectionId = APPWRITE_CONFIG.collections[post.category];
+                const collectionId = Reflect.get(APPWRITE_CONFIG.collections, post.category);
                 await databases.deleteDocument(
                     APPWRITE_CONFIG.databaseId,
                     collectionId,
@@ -685,14 +686,13 @@ function createPostHtml(post) {
     if (post.img) {
         const imgArray = post.img.split(',');
         if (imgArray.length === 1) {
-            imgHtml = `<img src="${imgArray[0]}" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src='${fallbackImg}';">`;
+            imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">';
         } else if (imgArray.length > 1) {
-            imgHtml = `
-            <div class="image-carousel" data-images="${post.img}" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">
-                <img src="${imgArray[1]}" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
-                <img src="${imgArray[0]}" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src='${fallbackImg}';">
-            </div>
-            `;
+            imgHtml = '\n' +
+            '            <div class="image-carousel" data-images="' + encodeHTML(post.img) + '" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">\n' +
+            '                <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
+            '                <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
+            '            </div>\n            ';
         }
     }
 
@@ -779,22 +779,21 @@ function createPostHtml(post) {
     `;
     }
 
-    return `
-    <div id="post-${post.id}" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, '${post.id}')">
-      <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
-      <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')">Edit Post</button>
-      ${imgHtml}
-      <div style="padding: 20px; pointer-events: none;">
-        <div class="news-header">
-          <span class="badge ${post.badgeClass}">${safeBadge}</span>
-          <span class="news-meta mono">${displayDate}</span>
-        </div>
-        <h4 class="news-title">${safeTitle}</h4>
-        <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">${safeContent}</p>
-        <button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>
-      </div>
-    </div>
-  `;
+    return '\n' +
+    '    <div id="post-' + encodeHTML(post.id) + '" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer;" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+    '      <button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
+    '      <button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit Post</button>\n' +
+    '      ' + imgHtml + '\n' +
+    '      <div style="padding: 20px; pointer-events: none;">\n' +
+    '        <div class="news-header">\n' +
+    '          <span class="badge ' + encodeHTML(post.badgeClass) + '">' + safeBadge + '</span>\n' +
+    '          <span class="news-meta mono">' + encodeHTML(displayDate) + '</span>\n' +
+    '        </div>\n' +
+    '        <h4 class="news-title">' + safeTitle + '</h4>\n' +
+    '        <p class="text-secondary" style="margin-top: 8px; white-space: pre-wrap;">' + safeContent + '</p>\n' +
+    '        <button class="btn-secondary" style="margin-top: 16px; padding: 6px 12px; font-size: 12px; pointer-events: auto;">Read More</button>\n' +
+    '      </div>\n' +
+    '    </div>\n  ';
 }
 
 let currentActiveCategory = 'All';
@@ -847,7 +846,7 @@ function renderFeeds() {
         return timeB - timeA;
     }).forEach(post => {
         if (post.category !== 'information') {
-            const container = containers[post.category];
+            const container = Reflect.get(containers, post.category);
             if (container) {
                 container.insertAdjacentHTML('beforeend', createPostHtml(post));
             }
@@ -875,34 +874,32 @@ function renderFeeds() {
 
         Object.keys(boardGroups).forEach(colName => {
             const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (colName || "").toLowerCase());
-            const colorAccent = lookup ? colColors[lookup] : "#ffffff";
-            let cardsHtml = boardGroups[colName].map(post => {
+            const colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
+            let cardsHtml = Reflect.get(boardGroups, colName).map(post => {
                 let imgHtml = '';
                 if (post.img) {
                     const imgArray = post.img.split(',');
                     if (imgArray.length === 1) {
-                        imgHtml = `<img src="${imgArray[0]}" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">`;
+                        imgHtml = '<img src="' + imgArray[0] + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
                     } else if (imgArray.length > 1) {
-                        imgHtml = `
-                        <div class="image-carousel trello-card-cover" data-images="${post.img}" data-current="0" style="position:relative; width:100%; height:200px;">
-                            <img src="${imgArray[1]}" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
-                            <img src="${imgArray[0]}" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src='https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';">
-                        </div>
-                        `;
+                        imgHtml = '\n' +
+                        '                        <div class="image-carousel trello-card-cover" data-images="' + post.img + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
+                        '                            <img src="' + imgArray[1] + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                        '                            <img src="' + imgArray[0] + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                        '                        </div>\n                        ';
                     }
                 }
-                return `
-                  <div class="trello-card post-item" id="post-${post.id}" onclick="openPostViewer(event, '${post.id}')">
-                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost('${post.id}')">Delete</button>
-                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost('${post.id}')">Edit</button>
-                    ${imgHtml}
-                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">
-                        <div class="trello-card-badge" style="color:${colorAccent}">${post.badge}</div>
-                        <div class="trello-card-title">${post.title}</div>
-                        <div class="trello-card-excerpt">${post.content}</div>
-                    </div>
-                  </div>
-                `;
+                return '\n' +
+                '                  <div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+                '                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
+                '                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
+                '                    ' + imgHtml + '\n' +
+                '                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
+                '                        <div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + encodeHTML(post.badge) + '</div>\n' +
+                '                        <div class="trello-card-title">' + encodeHTML(post.title) + '</div>\n' +
+                '                        <div class="trello-card-excerpt">' + encodeHTML(post.content) + '</div>\n' +
+                '                    </div>\n' +
+                '                  </div>\n                ';
             }).join('');
 
             const columnHtml = `
@@ -1027,7 +1024,6 @@ async function authenticate() {
         loginAttempts = 0;
         authModal.classList.remove('active');
         document.body.classList.add('dev-mode');
-        resetInactivityTimer();
         switchView('view-dev-portal');
 
     } catch (error) {
