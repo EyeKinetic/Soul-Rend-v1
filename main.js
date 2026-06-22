@@ -519,6 +519,27 @@ function parseMarkdown(text) {
     return html;
 }
 
+function generateMediaHtml(url, fallback, className, additionalStyle) {
+    url = url.trim();
+    const safeUrl = encodeHTML(url);
+    const styleAttr = additionalStyle ? 'style="' + additionalStyle + '"' : '';
+    const classAttr = className ? 'class="' + className + '"' : '';
+
+    if (url.includes('tenor.com/view/')) {
+        const parts = url.split('-');
+        const id = parts[parts.length - 1];
+        if (id && /^\d+$/.test(id)) {
+            return '<iframe src="https://tenor.com/embed/' + id + '" ' + classAttr + ' ' + styleAttr + ' frameborder="0" scrolling="no" allowfullscreen pointer-events="none"></iframe>';
+        }
+    }
+    
+    if (url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
+        return '<video src="' + safeUrl + '" ' + classAttr + ' ' + styleAttr + ' autoplay loop muted playsinline></video>';
+    }
+
+    return '<img src="' + safeUrl + '" alt="Cover" ' + classAttr + ' ' + styleAttr + ' onerror="this.onerror=null;this.src=\'' + fallback + '\';this.alt=\'\';">';
+}
+
 window.openPostViewer = function (e, id) {
     e.stopPropagation();
     const post = postsDB.find(p => p.id === id);
@@ -539,19 +560,19 @@ window.openPostViewer = function (e, id) {
     viewerBadge.textContent = post.badge;
     viewerBadge.className = 'badge ' + (post.badgeClass || 'dev');
 
-    if (post.img) {
-        const { cleanImg } = extractMetadata(post.img);
-        let firstImg = cleanImg;
-        if (firstImg.includes(',')) firstImg = firstImg.split(',')[0];
+    const viewerMediaContainer = document.getElementById('viewer-media-container');
+    if (viewerMediaContainer) {
+        if (post.img) {
+            const { cleanImg } = extractMetadata(post.img);
+            let firstImg = cleanImg;
+            if (firstImg.includes(',')) firstImg = firstImg.split(',')[0];
 
-        viewerImg.src = firstImg;
-        viewerImg.style.display = 'block';
-        viewerImg.onerror = function () {
-            this.onerror = null;
-            this.src = 'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable';
-        };
-    } else {
-        viewerImg.style.display = 'none';
+            viewerMediaContainer.innerHTML = generateMediaHtml(firstImg, 'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable', '', 'width: 100%; height: 200px; object-fit: cover; display: block;');
+            viewerMediaContainer.style.display = 'block';
+        } else {
+            viewerMediaContainer.style.display = 'none';
+            viewerMediaContainer.innerHTML = '';
+        }
     }
 
     postViewerModal.classList.add('active');
@@ -583,11 +604,11 @@ function createPostHtml(post) {
     if (cleanImg) {
         const imgArray = cleanImg.split(',');
         if (imgArray.length === 1) {
-            imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" alt="Cover" style="width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">';
+            imgHtml = generateMediaHtml(imgArray[0], fallbackImg, '', 'width:100%; height:200px; object-fit:cover; border-radius:8px 8px 0 0; pointer-events: auto;');
         } else if (imgArray.length > 1) {
             imgHtml = '<div class="image-carousel" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="width:100%; height:200px; border-radius:8px 8px 0 0;">\n' +
-                '  <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
-                '  <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" alt="Cover" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';">\n' +
+                '  ' + generateMediaHtml(imgArray[1], fallbackImg, 'carousel-bottom', 'width:100%; height:100%; object-fit: cover;') + '\n' +
+                '  ' + generateMediaHtml(imgArray[0], fallbackImg, 'carousel-top', 'width:100%; height:100%; object-fit: cover;') + '\n' +
                 '</div>';
         }
     }
@@ -640,14 +661,14 @@ function createPostHtml(post) {
             if (imgArray.length === 1) {
                 eventBgHtml = '' +
                 '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">\n' +
-                    '<img src="' + encodeHTML(imgArray[0]) + '" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
+                    generateMediaHtml(imgArray[0], fallbackImg, '', 'width: 100%; height: 100%; object-fit: cover;') + '\n' +
                 '</div>\n' +
                 '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8));"></div>\n';
             } else if (imgArray.length > 1) {
                 eventBgHtml = '' +
                 '<div class="image-carousel" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; border-radius: 0;">\n' +
-                    '<img src="' + encodeHTML(imgArray[1]) + '" class="carousel-bottom" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
-                    '<img src="' + encodeHTML(imgArray[0]) + '" class="carousel-top" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src=\'' + fallbackImg + '\';this.alt=\'\';">\n' +
+                    generateMediaHtml(imgArray[1], fallbackImg, 'carousel-bottom', 'width: 100%; height: 100%; object-fit: cover;') + '\n' +
+                    generateMediaHtml(imgArray[0], fallbackImg, 'carousel-top', 'width: 100%; height: 100%; object-fit: cover;') + '\n' +
                 '</div>\n' +
                 '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(rgba(10, 5, 5, 0.4), rgba(10, 5, 5, 0.8)); pointer-events: none;"></div>\n';
             }
@@ -810,12 +831,12 @@ function renderFeeds() {
                 if (cleanImg) {
                     const imgArray = cleanImg.split(',');
                     if (imgArray.length === 1) {
-                        imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
+                        imgHtml = generateMediaHtml(imgArray[0], 'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable', 'trello-card-cover', '');
                     } else if (imgArray.length > 1) {
                         imgHtml = '' +
                         '<div class="image-carousel trello-card-cover" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
-                            '<img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
-                            '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                            generateMediaHtml(imgArray[1], 'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable', 'carousel-bottom', 'height:100%; width:100%; object-fit: cover;') + '\n' +
+                            generateMediaHtml(imgArray[0], 'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable', 'carousel-top', 'height:100%; width:100%; object-fit: cover;') + '\n' +
                         '</div>\n';
                     }
                 }
