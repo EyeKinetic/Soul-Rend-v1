@@ -129,9 +129,24 @@
           <div class="sidebar-header">CMS TOOLS</div>
           <ul class="sidebar-menu">
             <li class="active">Post Update</li>
-            <button class="btn-secondary" id="logout-dev-btn" style="margin-top: 40px; width: 100%;">Log Out
+            <button class="btn-secondary" id="logout-dev-btn" style="margin-top: 20px; width: 100%;">Log Out
               Admin</button>
           </ul>
+
+          <!-- Category Manager -->
+          <div class="category-manager">
+            <div class="category-manager-header">Info Categories</div>
+            <div class="category-list" id="category-list">
+              <div class="category-empty">No categories yet</div>
+            </div>
+            <div class="category-add-form">
+              <div class="cat-form-row">
+                <input type="text" id="cat-name-input" placeholder="Category name...">
+                <input type="color" id="cat-color-input" value="#0dd7f2" title="Category color">
+              </div>
+              <button class="cat-add-btn" id="cat-add-btn">+ Add Category</button>
+            </div>
+          </div>
         </aside>
 
         <div class="portal-content">
@@ -164,8 +179,16 @@
                 <input type="datetime-local" id="cms-time" class="input-dark">
               </div>
               <div class="form-group" style="flex: 1; display: none;" id="cms-board-column-group">
-                <label>Board Column (Info Only)</label>
-                <input type="text" id="cms-board-column" class="input-dark" placeholder="e.g. Red, Blue, Green">
+                <label>Category (Info Only)</label>
+                <select id="cms-board-column" class="input-dark">
+                  <option value="">Select category...</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1; display: none;" id="cms-subcategory-group">
+                <label>Subcategory</label>
+                <select id="cms-subcategory" class="input-dark">
+                  <option value="">None</option>
+                </select>
               </div>
             </div>
             <div style="display: flex; gap: 16px;">
@@ -194,7 +217,14 @@
                   <input type="text" id="cms-img" class="input-dark" placeholder="https://..." style="flex: 1;">
                   <button type="button" class="btn-secondary" onclick="document.getElementById('cms-img-file').click()"
                     style="padding: 10px; font-size: 14px; white-space: nowrap;">Upload File</button>
-                  <input type="file" id="cms-img-file" accept="image/*" multiple style="display: none;">
+                  <input type="file" id="cms-img-file" accept="image/*,.gif" multiple style="display: none;">
+                </div>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>Card Accent Color</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="color" id="cms-accent-color" value="#0dd7f2" title="Accent Color" style="height: 42px; width: 42px; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;">
+                  <input type="text" id="cms-accent-color-hex" class="input-dark" value="#0dd7f2" style="flex: 1;" oninput="document.getElementById('cms-accent-color').value = this.value">
                 </div>
               </div>
             </div>

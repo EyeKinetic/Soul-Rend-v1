@@ -733,13 +733,29 @@ function renderFeeds() {
             }
         }
         else {
-            const column = post.boardColumn || "General";
+            const parts = (post.boardColumn || "General").split("||");
+            const column = parts[0] || "General";
+            post._subcategory = parts[1] || post.title || "Untitled";
             if (!Reflect.has(boardGroups, column)) Reflect.set(boardGroups, column, []);
             Reflect.get(boardGroups, column).push(post);
         }
     });
 
     if (infoContainer) {
+        // Load category definitions from localStorage for ordering
+        let categoryDefs = [];
+        try {
+            categoryDefs = JSON.parse(localStorage.getItem('soulrend-info-categories') || '[]');
+        } catch (e) { categoryDefs = []; }
+        categoryDefs.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        // Build a map of category name -> color from definitions
+        const catColorMap = {};
+        categoryDefs.forEach(cat => {
+            catColorMap[cat.name.toLowerCase()] = cat.color || '#ffffff';
+        });
+
+        // Fallback color map for legacy posts
         const colColors = {
             "Red": "#E50914",
             "Purple": "#8e44ad",
@@ -753,16 +769,35 @@ function renderFeeds() {
             "Gray": "#9CA3AF"
         };
 
-        Object.keys(boardGroups).forEach(colName => {
-            const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (colName || "").toLowerCase());
-            const colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
+        // Determine column order: defined categories first, then any remaining
+        const orderedColNames = categoryDefs.map(c => c.name);
+        const remainingCols = Object.keys(boardGroups).filter(
+            colName => !orderedColNames.some(n => n.toLowerCase() === colName.toLowerCase())
+        );
+        const allColNames = [...orderedColNames.filter(name =>
+            Object.keys(boardGroups).some(bg => bg.toLowerCase() === name.toLowerCase())
+        ), ...remainingCols];
+
+        allColNames.forEach(colName => {
+            // Find the actual key in boardGroups (case-insensitive match)
+            const actualKey = Object.keys(boardGroups).find(
+                k => k.toLowerCase() === colName.toLowerCase()
+            );
+            if (!actualKey) return;
+
+            // Determine color: check category defs first, then legacy color map
+            let colorAccent = catColorMap[actualKey.toLowerCase()];
+            if (!colorAccent) {
+                const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (actualKey || "").toLowerCase());
+                colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
+            }
             
             const titleGroups = {};
-            const colPosts = Reflect.get(boardGroups, colName);
+            const colPosts = Reflect.get(boardGroups, actualKey);
             colPosts.forEach(post => {
-                const title = post.title || "Untitled";
-                if (!Reflect.has(titleGroups, title)) Reflect.set(titleGroups, title, []);
-                Reflect.get(titleGroups, title).push(post);
+                const groupName = post._subcategory || post.title || "Untitled";
+                if (!Reflect.has(titleGroups, groupName)) Reflect.set(titleGroups, groupName, []);
+                Reflect.get(titleGroups, groupName).push(post);
             });
 
             let cardsHtml = '';
@@ -817,7 +852,7 @@ function renderFeeds() {
 
             const columnHtml = '' +
               '<div class="board-column">\n' +
-                '<div class="board-column-header" style="border-top: 3px solid ' + encodeHTML(colorAccent) + '">' + sanitize(colName) + '</div>\n' +
+                '<div class="board-column-header" style="border-top: 3px solid ' + encodeHTML(colorAccent) + '">' + sanitize(actualKey) + '</div>\n' +
                 cardsHtml + '\n' +
               '</div>\n';
             infoContainer.insertAdjacentHTML('beforeend', columnHtml);

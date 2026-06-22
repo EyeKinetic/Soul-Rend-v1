@@ -342,7 +342,13 @@ window.editPost = function (id) {
         }
     }
     if (post.category === 'information' && post.boardColumn) {
-        document.getElementById('cms-board-column').value = post.boardColumn;
+        const parts = post.boardColumn.split('||');
+        document.getElementById('cms-board-column').value = parts[0] || '';
+        document.getElementById('cms-board-column').dispatchEvent(new Event('change'));
+        if (parts.length > 1) {
+            const subcatEl = document.getElementById('cms-subcategory');
+            if (subcatEl) subcatEl.value = parts[1];
+        }
     }
 
     editingPostId = id;
@@ -376,6 +382,322 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn');
 if (cancelEditBtn) {
     cancelEditBtn.addEventListener('click', cancelEditMode);
 }
+
+const CATEGORIES_KEY = 'soulrend-info-categories';
+let dragSrcIdx = null;
+
+function loadCategories() {
+    try {
+        return JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]');
+    } catch (e) { return []; }
+}
+
+function saveCategories(cats) {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+}
+
+function renderCategoryList() {
+    const listEl = document.getElementById('category-list');
+    if (!listEl) return;
+
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (cats.length === 0) {
+        listEl.innerHTML = '<div class="category-empty">No categories yet</div>';
+        populateBoardColumnDropdown();
+        return;
+    }
+
+    listEl.innerHTML = cats.map((cat, idx) => {
+        const safeName = encodeHTML(cat.name);
+        const safeColor = encodeHTML(cat.color || '#ffffff');
+        const subcats = cat.subcategories || [];
+        
+        let subcatsHtml = '';
+        if (subcats.length > 0) {
+            subcatsHtml = '<div class="subcategory-list">' + subcats.map((sub, sIdx) => `
+                <div class="subcategory-item">
+                    <span class="subcat-name">${encodeHTML(sub)}</span>
+                    <span class="subcat-actions">
+                        <button onclick="deleteSubcategory(${idx}, ${sIdx})" title="Delete Subcategory">✕</button>
+                    </span>
+                </div>
+            `).join('') + '</div>';
+        }
+
+        return '' +
+            '<div class="category-item" draggable="true" data-cat-idx="' + idx + '">' +
+                '<div class="cat-main-row">' +
+                    '<span class="cat-drag-handle" title="Drag to reorder">⠿</span>' +
+                    '<span class="cat-color-dot" style="background: ' + safeColor + '; color: ' + safeColor + ';"></span>' +
+                    '<span class="cat-name">' + safeName + '</span>' +
+                    '<span class="cat-order-badge">#' + (idx + 1) + '</span>' +
+                    '<span class="cat-actions">' +
+                        '<button class="cat-delete-btn" onclick="deleteCategory(' + idx + ')" title="Delete Category">✕</button>' +
+                    '</span>' +
+                '</div>' +
+                subcatsHtml +
+                '<div class="subcat-add-form">' +
+                    '<input type="text" id="subcat-input-' + idx + '" placeholder="New subcategory...">' +
+                    '<button onclick="addSubcategory(' + idx + ')">Add</button>' +
+                '</div>' +
+            '</div>';
+    }).join('');
+
+    listEl.querySelectorAll('.category-item').forEach(item => {
+        item.addEventListener('dragstart', onCatDragStart);
+        item.addEventListener('dragover', onCatDragOver);
+        item.addEventListener('dragenter', onCatDragEnter);
+        item.addEventListener('dragleave', onCatDragLeave);
+        item.addEventListener('drop', onCatDrop);
+        item.addEventListener('dragend', onCatDragEnd);
+    });
+
+    populateBoardColumnDropdown();
+}
+
+function onCatDragStart(e) {
+    dragSrcIdx = parseInt(this.dataset.catIdx);
+    this.classList.add('cat-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragSrcIdx);
+}
+
+function onCatDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function onCatDragEnter(e) {
+    e.preventDefault();
+    this.classList.add('cat-drag-over');
+}
+
+function onCatDragLeave() {
+    this.classList.remove('cat-drag-over');
+}
+
+function onCatDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('cat-drag-over');
+
+    const targetIdx = parseInt(this.dataset.catIdx);
+    if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const [moved] = cats.splice(dragSrcIdx, 1);
+    cats.splice(targetIdx, 0, moved);
+    cats.forEach((c, i) => { c.order = i + 1; });
+
+    saveCategories(cats);
+    renderCategoryList();
+    renderFeeds();
+}
+
+function onCatDragEnd() {
+    this.classList.remove('cat-dragging');
+    document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+    dragSrcIdx = null;
+}
+
+function populateBoardColumnDropdown() {
+    const select = document.getElementById('cms-board-column');
+    if (!select) return;
+
+    const currentVal = select.value;
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    select.innerHTML = '<option value="">Select category...</option>';
+
+    cats.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.name;
+        opt.textContent = cat.name;
+        select.appendChild(opt);
+    });
+
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__';
+    customOpt.textContent = '— Type custom —';
+    select.appendChild(customOpt);
+
+    if (currentVal && Array.from(select.options).some(o => o.value === currentVal)) {
+        select.value = currentVal;
+    }
+
+    populateSubcategoryDropdown();
+}
+
+function populateSubcategoryDropdown(selectedSub = null) {
+    const catSelect = document.getElementById('cms-board-column');
+    const subSelect = document.getElementById('cms-subcategory');
+    if (!catSelect || !subSelect) return;
+
+    const currentCatName = catSelect.value;
+    const currentSub = selectedSub || subSelect.value;
+    
+    subSelect.innerHTML = '<option value="">None</option>';
+    
+    if (currentCatName && currentCatName !== '__custom__') {
+        const cats = loadCategories();
+        const cat = cats.find(c => c.name === currentCatName);
+        if (cat && cat.subcategories) {
+            cat.subcategories.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                subSelect.appendChild(opt);
+            });
+        }
+    }
+    
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__';
+    customOpt.textContent = '— Type custom —';
+    subSelect.appendChild(customOpt);
+
+    if (currentSub && Array.from(subSelect.options).some(o => o.value === currentSub)) {
+        subSelect.value = currentSub;
+    }
+}
+
+window.addCategory = function () {
+    const nameInput = document.getElementById('cat-name-input');
+    const colorInput = document.getElementById('cat-color-input');
+    if (!nameInput) return;
+
+    const name = nameInput.value.trim();
+    if (!name) {
+        nameInput.style.borderColor = 'var(--primary-accent)';
+        setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
+        return;
+    }
+
+    const cats = loadCategories();
+
+    if (cats.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        alert('Category "' + name + '" already exists.');
+        return;
+    }
+
+    const maxOrder = cats.length > 0 ? Math.max(...cats.map(c => c.order || 0)) : 0;
+    cats.push({
+        name: name,
+        color: colorInput ? colorInput.value : '#0dd7f2',
+        order: maxOrder + 1
+    });
+
+    saveCategories(cats);
+    nameInput.value = '';
+    if (colorInput) colorInput.value = '#0dd7f2';
+    renderCategoryList();
+};
+
+window.deleteCategory = function (idx) {
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+    if (idx < 0 || idx >= cats.length) return;
+
+    if (!confirm('Delete category "' + cats[idx].name + '"? Existing posts will keep their category value.')) return;
+
+    cats.splice(idx, 1);
+    cats.forEach((c, i) => { c.order = i + 1; });
+    saveCategories(cats);
+    renderCategoryList();
+};
+
+window.addSubcategory = function(idx) {
+    const input = document.getElementById(`subcat-input-${idx}`);
+    if (!input) return;
+    const subName = input.value.trim();
+    if (!subName) return;
+
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+    if (idx < 0 || idx >= cats.length) return;
+
+    if (!cats[idx].subcategories) cats[idx].subcategories = [];
+    if (cats[idx].subcategories.includes(subName)) {
+        alert('Subcategory already exists.');
+        return;
+    }
+
+    cats[idx].subcategories.push(subName);
+    saveCategories(cats);
+    renderCategoryList();
+};
+
+window.deleteSubcategory = function(catIdx, subIdx) {
+    const cats = loadCategories();
+    cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+    if (catIdx < 0 || catIdx >= cats.length) return;
+    
+    if (!cats[catIdx].subcategories || subIdx < 0 || subIdx >= cats[catIdx].subcategories.length) return;
+
+    if (!confirm(`Delete subcategory "${cats[catIdx].subcategories[subIdx]}"?`)) return;
+
+    cats[catIdx].subcategories.splice(subIdx, 1);
+    saveCategories(cats);
+    renderCategoryList();
+};
+
+const catAddBtn = document.getElementById('cat-add-btn');
+if (catAddBtn) {
+    catAddBtn.addEventListener('click', () => window.addCategory());
+}
+
+const catNameInput = document.getElementById('cat-name-input');
+if (catNameInput) {
+    catNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') window.addCategory();
+    });
+}
+
+const boardColSelect = document.getElementById('cms-board-column');
+if (boardColSelect) {
+    boardColSelect.addEventListener('change', (e) => {
+        populateSubcategoryDropdown();
+        if (e.target.value === '__custom__') {
+            const customName = prompt('Enter custom category name:');
+            if (customName && customName.trim()) {
+                const opt = document.createElement('option');
+                opt.value = customName.trim();
+                opt.textContent = customName.trim();
+                const customOpt = boardColSelect.querySelector('option[value="__custom__"]');
+                boardColSelect.insertBefore(opt, customOpt);
+                boardColSelect.value = customName.trim();
+            } else {
+                boardColSelect.value = '';
+            }
+        }
+    });
+}
+
+const subcatSelect = document.getElementById('cms-subcategory');
+if (subcatSelect) {
+    subcatSelect.addEventListener('change', (e) => {
+        if (e.target.value === '__custom__') {
+            const customName = prompt('Enter custom subcategory name:');
+            if (customName && customName.trim()) {
+                const opt = document.createElement('option');
+                opt.value = customName.trim();
+                opt.textContent = customName.trim();
+                const customOpt = subcatSelect.querySelector('option[value="__custom__"]');
+                subcatSelect.insertBefore(opt, customOpt);
+                subcatSelect.value = customName.trim();
+            } else {
+                subcatSelect.value = '';
+            }
+        }
+    });
+}
+
+renderCategoryList();
 
 function switchView(targetId) {
     _doSwitchView(targetId);
@@ -900,13 +1222,24 @@ function renderFeeds() {
             }
         }
         else {
-            const column = post.boardColumn || "General";
+            const parts = (post.boardColumn || "General").split("||");
+            const column = parts[0] || "General";
+            post._subcategory = parts[1] || post.title || "Untitled";
             if (!boardGroups[column]) boardGroups[column] = [];
             boardGroups[column].push(post);
         }
     });
 
     if (infoContainer) {
+        // Load category definitions from localStorage for ordering
+        let categoryDefs = loadCategories();
+        categoryDefs.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const catColorMap = {};
+        categoryDefs.forEach(cat => {
+            catColorMap[cat.name.toLowerCase()] = cat.color || '#ffffff';
+        });
+
         const colColors = {
             "Red": "#E50914",
             "Purple": "#8e44ad",
@@ -920,42 +1253,86 @@ function renderFeeds() {
             "Gray": "#9CA3AF"
         };
 
-        Object.keys(boardGroups).forEach(colName => {
-            const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (colName || "").toLowerCase());
-            const colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
-            let cardsHtml = Reflect.get(boardGroups, colName).map(post => {
-                const { cleanImg, meta } = extractMetadata(post.img);
-                let imgHtml = '';
-                if (cleanImg) {
-                    const imgArray = cleanImg.split(',');
-                    if (imgArray.length === 1) {
-                        imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
-                    } else if (imgArray.length > 1) {
-                        imgHtml = '\n' +
-                        '                        <div class="image-carousel trello-card-cover" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
-                        '                            <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
-                        '                            <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
-                        '                        </div>\n                        ';
+        // Determine column order: defined categories first, then any remaining
+        const orderedColNames = categoryDefs.map(c => c.name);
+        const remainingCols = Object.keys(boardGroups).filter(
+            colName => !orderedColNames.some(n => n.toLowerCase() === colName.toLowerCase())
+        );
+        const allColNames = [...orderedColNames.filter(name =>
+            Object.keys(boardGroups).some(bg => bg.toLowerCase() === name.toLowerCase())
+        ), ...remainingCols];
+
+        allColNames.forEach(colName => {
+            const actualKey = Object.keys(boardGroups).find(
+                k => k.toLowerCase() === colName.toLowerCase()
+            );
+            if (!actualKey) return;
+
+            let colorAccent = catColorMap[actualKey.toLowerCase()];
+            if (!colorAccent) {
+                const lookup = Object.keys(colColors).find(k => k.toLowerCase() === (actualKey || "").toLowerCase());
+                colorAccent = lookup ? Reflect.get(colColors, lookup) : "#ffffff";
+            }
+
+            const titleGroups = {};
+            const colPosts = Reflect.get(boardGroups, actualKey);
+            colPosts.forEach(post => {
+                const groupName = post._subcategory || post.title || "Untitled";
+                if (!Reflect.has(titleGroups, groupName)) Reflect.set(titleGroups, groupName, []);
+                Reflect.get(titleGroups, groupName).push(post);
+            });
+
+            let cardsHtml = '';
+            Object.keys(titleGroups).forEach(title => {
+                const groupPosts = Reflect.get(titleGroups, title);
+                let groupCardsHtml = groupPosts.map(post => {
+                    const { cleanImg, meta } = extractMetadata(post.img);
+                    let imgHtml = '';
+                    if (cleanImg) {
+                        const imgArray = cleanImg.split(',');
+                        if (imgArray.length === 1) {
+                            imgHtml = '<img src="' + encodeHTML(imgArray[0].trim()) + '" class="trello-card-cover" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">';
+                        } else if (imgArray.length > 1) {
+                            imgHtml = '\n' +
+                            '                        <div class="image-carousel trello-card-cover" data-images="' + encodeHTML(cleanImg) + '" data-current="0" style="position:relative; width:100%; height:200px;">\n' +
+                            '                            <img src="' + encodeHTML(imgArray[1].trim()) + '" class="carousel-bottom" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                            '                            <img src="' + encodeHTML(imgArray[0].trim()) + '" class="carousel-top" style="height:100%; width:100%; object-fit: cover;" alt="Cover" onerror="this.onerror=null;this.src=\'https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable\';">\n' +
+                            '                        </div>\n                        ';
+                        }
                     }
-                }
-                const trelloCardAccent = meta.color ? `box-shadow: 0 0 10px ${encodeHTML(meta.color)}40; border-left: 3px solid ${encodeHTML(meta.color)};` : ``;
-                const safeTrelloContent = parseMarkdown(post.content);
-                return '\n' +
-                '                  <div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" style="' + trelloCardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
-                '                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
-                '                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
-                '                    ' + imgHtml + '\n' +
-                '                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
-                '                        <div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + encodeHTML(post.badge) + '</div>\n' +
-                '                        <div class="trello-card-title">' + encodeHTML(post.title) + '</div>\n' +
-                '                        <div class="trello-card-excerpt">' + safeTrelloContent + '</div>\n' +
-                '                    </div>\n' +
-                '                  </div>\n                ';
-            }).join('');
+                    const trelloCardAccent = meta.color ? `box-shadow: 0 0 10px ${encodeHTML(meta.color)}40; border-left: 3px solid ${encodeHTML(meta.color)};` : ``;
+                    const safeTrelloContent = parseMarkdown(post.content);
+                    return '\n' +
+                    '                  <div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" style="' + trelloCardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
+                    '                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
+                    '                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
+                    '                    ' + imgHtml + '\n' +
+                    '                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
+                    '                        <div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + encodeHTML(post.badge) + '</div>\n' +
+                    '                        <div class="trello-card-title">' + encodeHTML(post.title) + '</div>\n' +
+                    '                        <div class="trello-card-excerpt">' + safeTrelloContent + '</div>\n' +
+                    '                    </div>\n' +
+                    '                  </div>\n                ';
+                }).join('');
+
+                const isExpanded = groupPosts.length === 1 ? 'expanded' : '';
+                const displayChevron = groupPosts.length > 1 ? '<span style="font-size: 10px; margin-left: 4px;">▼</span>' : '';
+
+                cardsHtml += '' +
+                  '<div class="trello-card-group ' + isExpanded + '">\n' +
+                    '<div class="trello-card-group-header" onclick="this.parentElement.classList.toggle(\'expanded\')">\n' +
+                        '<span class="group-title" style="color: ' + encodeHTML(colorAccent) + '; flex: 1; margin-right: 8px;">' + sanitize(title) + '</span>\n' +
+                        '<span class="group-count">' + groupPosts.length + ' post' + (groupPosts.length !== 1 ? 's' : '') + ' ' + displayChevron + '</span>\n' +
+                    '</div>\n' +
+                    '<div class="trello-card-group-content">\n' +
+                        groupCardsHtml + '\n' +
+                    '</div>\n' +
+                  '</div>\n';
+            });
 
             const columnHtml = `
               <div class="board-column">
-                <div class="board-column-header" style="border-top: 3px solid ${colorAccent}">${colName}</div>
+                <div class="board-column-header" style="border-top: 3px solid ${encodeHTML(colorAccent)}">${encodeHTML(actualKey)}</div>
                 ${cardsHtml}
               </div>
             `;
@@ -966,7 +1343,7 @@ function renderFeeds() {
         if (catContainer) {
             catContainer.innerHTML = '';
 
-            const cols = ['All', ...Object.keys(boardGroups)];
+            const cols = ['All', ...allColNames];
 
             cols.forEach(col => {
                 const btn = document.createElement('button');
@@ -1192,6 +1569,10 @@ if (publishBtn) {
         let customBoardCol = "General";
         if (category === "information" && inputBoardCol && inputBoardCol.value.trim()) {
             customBoardCol = inputBoardCol.value.trim();
+            const inputSubcat = document.getElementById('cms-subcategory');
+            if (inputSubcat && inputSubcat.value && inputSubcat.value !== "") {
+                customBoardCol += "||" + inputSubcat.value.trim();
+            }
         }
 
         let payload = {};
