@@ -5,6 +5,7 @@ import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/a
 import DOMPurify from 'dompurify';
 
 const sanitize = (str) => DOMPurify.sanitize(str ?? '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+const encodeHTML = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 inject();
 injectSpeedInsights();
@@ -711,6 +712,12 @@ function createPostHtml(post) {
     let imgHtml = '';
     const fallbackImg = "https://placehold.co/600x200/1a1a2e/ffffff?text=Image+Unavailable";
 
+    const { cleanImg, meta } = extractMetadata(post.img);
+
+    const safeTitle = sanitize(post.title);
+    const safeContent = parseMarkdown(post.content);
+    const safeBadge = sanitize(post.badge);
+
     if (cleanImg) {
         const imgArray = cleanImg.split(',');
         if (imgArray.length === 1) {
@@ -798,8 +805,8 @@ function createPostHtml(post) {
         return `
       <div id="post-${post.id}" class="featured-card card event-card post-item" ${post.end_time ? `data-endtime="${post.end_time}"` : ""} style="position: relative; overflow: hidden; padding: 32px; cursor: pointer; background: #0A0B10; ${accentStyle}" onclick="openPostViewer(event, '${post.id}')">
         ${eventBgHtml}
-        <button class="delete-btn" onclick="deletePost('${post.id}')" style="z-index: 10;">Delete Post</button>
-        <button class="edit-btn btn-secondary" onclick="editPost('${post.id}')" style="z-index: 10;">Edit Post</button>
+        <button class="delete-btn" onclick="event.stopPropagation(); deletePost('${post.id}')" style="position: absolute; top: 16px; right: 16px; z-index: 20; padding: 6px 12px; font-size: 12px; background: rgba(229, 9, 20, 0.8); color: white; border: none; border-radius: 4px;">Delete Post</button>
+        <button class="edit-btn btn-secondary" onclick="event.stopPropagation(); editPost('${post.id}')" style="position: absolute; top: 16px; right: 120px; z-index: 20; padding: 6px 12px; font-size: 12px; background: rgba(13, 215, 242, 0.8); color: white; border: none; border-radius: 4px;">Edit Post</button>
         <div class="card-content" style="position: relative; z-index: 5; pointer-events: none;">
           <span class="badge ${post.badgeClass}" style="${safeBadgeSty}">${safeBadgeTxt}</span>
           <h3 class="card-title" style="margin-top:16px">${safeTitle}</h3>
@@ -822,8 +829,8 @@ function createPostHtml(post) {
 
     return '\n' +
     '    <div id="post-' + encodeHTML(post.id) + '" class="news-item card post-item" style="padding:0; overflow:hidden; cursor: pointer; ' + cardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
-    '      <button class="delete-btn" onclick="deletePost(\'' + encodeHTML(post.id) + '\')" style="z-index: 10;">Delete Post</button>\n' +
-    '      <button class="edit-btn btn-secondary" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit Post</button>\n' +
+    '      <button class="delete-btn" onclick="event.stopPropagation(); deletePost(\'' + encodeHTML(post.id) + '\')" style="position: absolute; top: 16px; right: 16px; z-index: 20; padding: 6px 12px; font-size: 12px; background: rgba(229, 9, 20, 0.8); color: white; border: none; border-radius: 4px;">Delete Post</button>\n' +
+    '      <button class="edit-btn btn-secondary" onclick="event.stopPropagation(); editPost(\'' + encodeHTML(post.id) + '\')" style="position: absolute; top: 16px; right: 120px; z-index: 20; padding: 6px 12px; font-size: 12px; background: rgba(13, 215, 242, 0.8); color: white; border: none; border-radius: 4px;">Edit Post</button>\n' +
     '      ' + imgHtml + '\n' +
     '      <div style="padding: 20px; pointer-events: none;">\n' +
     '        <div class="news-header">\n' +
@@ -935,8 +942,8 @@ function renderFeeds() {
                 const safeTrelloContent = parseMarkdown(post.content);
                 return '\n' +
                 '                  <div class="trello-card post-item" id="post-' + encodeHTML(post.id) + '" style="' + trelloCardAccent + '" onclick="openPostViewer(event, \'' + encodeHTML(post.id) + '\')">\n' +
-                '                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
-                '                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
+                '                    <button class="delete-btn" style="position:absolute; top:4px; right:4px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); deletePost(\'' + encodeHTML(post.id) + '\')">Delete</button>\n' +
+                '                    <button class="edit-btn btn-secondary" style="position:absolute; top:4px; right:52px; z-index: 10; font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); editPost(\'' + encodeHTML(post.id) + '\')">Edit</button>\n' +
                 '                    ' + imgHtml + '\n' +
                 '                    <div style="pointer-events: none; flex: 1; display: flex; flex-direction: column;">\n' +
                 '                        <div class="trello-card-badge" style="color:' + encodeHTML(colorAccent) + '">' + encodeHTML(post.badge) + '</div>\n' +
@@ -1020,8 +1027,13 @@ window.addEventListener('scroll', resetInactivityTimer);
 
 async function checkSession() {
     try {
-        await account.deleteSession('current');
+        await account.get();
+        // Session exists — go straight to dev portal
+        document.body.classList.add('dev-mode');
+        switchView('view-dev-portal');
+        return;
     } catch (e) {
+        // No active session — show login modal
     }
 
     document.body.classList.remove('dev-mode');
