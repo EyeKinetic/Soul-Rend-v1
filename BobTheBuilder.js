@@ -2,6 +2,7 @@ import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import './style.css';
 import { databases, account, storage, APPWRITE_CONFIG, ID, Query } from './src/appwrite.js';
+import { notifyDiscordBot } from './src/discordWebhooks.js';
 import DOMPurify from 'dompurify';
 
 const sanitize = (str) => DOMPurify.sanitize(str ?? '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
@@ -1245,8 +1246,10 @@ function renderFeeds() {
         }
         else {
             const parts = (post.boardColumn || "General").split("||");
-            const column = parts[0] || "General";
+            const rawColumn = parts[0] || "General";
             post._subcategory = parts[1] || post.title || "Untitled";
+            const existingCol = Object.keys(boardGroups).find(k => k.toLowerCase() === rawColumn.toLowerCase());
+            const column = existingCol || rawColumn;
             if (!boardGroups[column]) boardGroups[column] = [];
             boardGroups[column].push(post);
         }
@@ -1280,9 +1283,17 @@ function renderFeeds() {
         const remainingCols = Object.keys(boardGroups).filter(
             colName => !orderedColNames.some(n => n.toLowerCase() === colName.toLowerCase())
         );
-        const allColNames = [...orderedColNames.filter(name =>
+        let allColNames = [...orderedColNames.filter(name =>
             Object.keys(boardGroups).some(bg => bg.toLowerCase() === name.toLowerCase())
         ), ...remainingCols];
+
+        const seenNames = new Set();
+        allColNames = allColNames.filter(name => {
+            const lower = name.toLowerCase();
+            if (seenNames.has(lower)) return false;
+            seenNames.add(lower);
+            return true;
+        });
 
         allColNames.forEach(colName => {
             const actualKey = Object.keys(boardGroups).find(
@@ -1713,9 +1724,11 @@ if (publishBtn) {
                         await databases.deleteDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[oldCategory], editingPostId);
                         const newDoc = await databases.createDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], ID.unique(), payload);
                         if (postIndex !== -1) postsDB[postIndex] = { ...localPostData, id: newDoc.$id };
+                        if (category !== 'information') notifyDiscordBot("UPDATE", postsDB[postIndex]);
                     } else {
                         await databases.updateDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], editingPostId, payload);
                         if (postIndex !== -1) postsDB[postIndex] = { ...postsDB[postIndex], ...localPostData };
+                        if (category !== 'information') notifyDiscordBot("UPDATE", postsDB[postIndex]);
                     }
 
                     editingPostId = null;
@@ -1723,6 +1736,7 @@ if (publishBtn) {
                     const newDoc = await databases.createDocument(APPWRITE_CONFIG.databaseId, APPWRITE_CONFIG.collections[category], ID.unique(), payload);
                     const newPost = { ...localPostData, id: newDoc.$id };
                     postsDB.push(newPost);
+                    if (category !== 'information') notifyDiscordBot("CREATE", newPost);
                 }
 
                 selectedImageFiles = [];

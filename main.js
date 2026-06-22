@@ -755,8 +755,10 @@ function renderFeeds() {
         }
         else {
             const parts = (post.boardColumn || "General").split("||");
-            const column = parts[0] || "General";
+            const rawColumn = parts[0] || "General";
             post._subcategory = parts[1] || post.title || "Untitled";
+            const existingCol = Object.keys(boardGroups).find(k => k.toLowerCase() === rawColumn.toLowerCase());
+            const column = existingCol || rawColumn;
             if (!Reflect.has(boardGroups, column)) Reflect.set(boardGroups, column, []);
             Reflect.get(boardGroups, column).push(post);
         }
@@ -795,9 +797,17 @@ function renderFeeds() {
         const remainingCols = Object.keys(boardGroups).filter(
             colName => !orderedColNames.some(n => n.toLowerCase() === colName.toLowerCase())
         );
-        const allColNames = [...orderedColNames.filter(name =>
+        let allColNames = [...orderedColNames.filter(name =>
             Object.keys(boardGroups).some(bg => bg.toLowerCase() === name.toLowerCase())
         ), ...remainingCols];
+
+        const seenNames = new Set();
+        allColNames = allColNames.filter(name => {
+            const lower = name.toLowerCase();
+            if (seenNames.has(lower)) return false;
+            seenNames.add(lower);
+            return true;
+        });
 
         allColNames.forEach(colName => {
             // Find the actual key in boardGroups (case-insensitive match)
