@@ -171,6 +171,9 @@ function initBackgroundAnimation() {
 
 document.addEventListener('DOMContentLoaded', initBackgroundAnimation);
 
+// Initialize Vercel Speed Insights tracking
+injectSpeedInsights();
+
 let postsDB = [];
 let editingPostId = null;
 
